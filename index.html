@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>沛力每月小挑戰</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -206,6 +207,8 @@
   .demo b{color:var(--accent-hot);}
 
   /* ---------- 系統訊息 ---------- */
+  /* 資料還沒回來之前，只留提示與載入字樣，免得閃出一份不存在的課表 */
+  .wrap.is-loading > *:not(#banner):not(#loading){display:none;}
   .banner{margin-top:14px;padding:10px 13px;font-size:12.5px;line-height:1.6;border-left:2px solid var(--accent);background:var(--accent-dim);color:var(--muted);}
   .banner b{color:var(--text);}
   .banner.bad{border-left-color:#E0563C;background:rgba(224,86,60,.12);}
@@ -230,7 +233,7 @@
   </div>
 </header>
 
-<div class="wrap">
+<div class="wrap is-loading">
 
   <div class="banner" id="banner" hidden></div>
   <div class="loading" id="loading">載入中⋯</div>
@@ -674,6 +677,7 @@ const demoPid = (n,p) => "demo-" + n.replace(/\s+/g,"") + "-" + p;
 /* ---------------- 載入與重畫 ---------------- */
 
 function redraw(){
+  document.querySelector(".wrap").classList.remove("is-loading");
   drawMonths(); drawBoard(); drawStats(); drawLeaderboard(); drawSubmit(); drawHistory();
 }
 
