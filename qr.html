@@ -1,0 +1,182 @@
+<meta charset="utf-8">
+<title>沛力挑戰掃碼卡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+  :root{
+    --ink:#0C0C0C;
+    --panel:#151515;
+    --line:rgba(255,255,255,.10);
+    --line-strong:rgba(255,255,255,.20);
+    --accent:#F05A32;
+    --accent-hot:#FF7A4D;
+    --text:#FFFFFF;
+    --muted:#9C9C9C;
+    --muted-2:#6E6E6E;
+    --card:#FFFFFF;
+    --display:"Barlow Condensed","PingFang TC","Noto Sans TC",sans-serif;
+    --body:"DM Sans","PingFang TC","Noto Sans TC",system-ui,sans-serif;
+  }
+
+  html,body{background:var(--ink);}
+  body{
+    margin:0;font-family:var(--body);color:var(--text);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  *{box-sizing:border-box;}
+
+  .sheet{
+    max-width:640px;margin:0 auto;
+    padding-inline:16px;padding-block:34px 44px;
+    text-align:center;
+  }
+
+  /* ---------- 抬頭 ---------- */
+  .mark{display:inline-flex;align-items:baseline;gap:7px;font-family:var(--display);letter-spacing:.07em;}
+  .mark b{font-weight:700;font-size:26px;}
+  .mark span{font-weight:500;font-size:26px;color:var(--muted);}
+  .rule{width:46px;height:3px;background:var(--accent);margin:7px auto 0;}
+
+  h1{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(38px,11vw,58px);line-height:1.02;letter-spacing:.02em;
+    margin:24px 0 6px;text-wrap:balance;
+  }
+  .kicker{
+    font-family:var(--display);font-size:14px;font-weight:600;letter-spacing:.22em;
+    color:var(--accent);text-transform:uppercase;margin:0;
+  }
+  .lede{color:var(--muted);font-size:15px;margin:10px auto 0;max-width:30em;}
+
+  /* ---------- QR ---------- */
+  .qr-card{
+    background:var(--card);
+    width:min(300px,78vw);
+    margin:28px auto 0;
+    padding:20px;
+    display:grid;place-items:center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.12);
+  }
+  .qr-card img,.qr-card canvas{display:block;width:100%!important;height:auto!important;image-rendering:pixelated;}
+  .qr-fallback{color:#111;font-size:13px;line-height:1.6;padding:24px 8px;}
+  .qr-fallback b{display:block;font-family:var(--display);font-size:20px;margin-bottom:6px;}
+
+  .url{
+    display:inline-block;margin-top:18px;padding:9px 15px;
+    border:1px solid var(--line-strong);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12.5px;color:var(--muted);word-break:break-all;
+  }
+
+  /* ---------- 三步驟 ---------- */
+  .steps{
+    list-style:none;margin:34px 0 0;padding:0;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+    background:var(--line);border:1px solid var(--line);
+    text-align:left;
+  }
+  @media (max-width:460px){ .steps{grid-template-columns:1fr;} }
+  .steps li{background:var(--panel);padding:16px 14px;}
+  .steps .n{
+    font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.14em;
+    color:var(--accent);display:block;margin-bottom:5px;
+  }
+  .steps .t{font-family:var(--display);font-size:20px;font-weight:700;line-height:1.15;letter-spacing:.02em;}
+  .steps .d{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;}
+
+  /* ---------- 小提示 ---------- */
+  .tips{
+    margin-top:22px;border:1px solid var(--line);background:var(--panel);
+    padding:15px 16px;text-align:left;font-size:13px;color:var(--muted);line-height:1.75;
+  }
+  .tips b{color:var(--text);}
+  .tips p{margin:0;}
+  .tips p + p{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);}
+
+  .foot{margin-top:26px;font-size:11.5px;color:var(--muted-2);letter-spacing:.04em;}
+
+  /* ---------- 列印：翻成白底省墨，QR 依然清晰 ---------- */
+  @media print{
+    @page{ margin:14mm; }
+    html,body{background:#fff;}
+    body{color:#111;}
+    .sheet{padding-block:0;max-width:none;}
+    .mark span{color:#777;}
+    h1{font-size:52px;}
+    .lede,.steps .d,.tips{color:#444;}
+    .qr-card{box-shadow:none;border:1px solid #ddd;width:300px;}
+    .steps{background:#ccc;border-color:#ccc;}
+    .steps li{background:#fff;}
+    .tips{background:#fafafa;border-color:#ddd;}
+    .tips b{color:#111;}
+    .url{color:#555;border-color:#ccc;}
+    .foot{color:#888;}
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="mark"><b>PERI</b><span>TRAINING</span></div>
+  <div class="rule"></div>
+
+  <p class="kicker" style="margin-top:22px">Monthly Challenge</p>
+  <h1>每月小挑戰</h1>
+  <p class="lede">每個月一份課表，做完自己填成績，男女分榜即時排名。</p>
+
+  <div class="qr-card" id="qr">
+    <div class="qr-fallback" id="fallback">
+      <b>掃我</b>
+      若這裡沒有出現 QR Code，<br>請直接開下方網址。
+    </div>
+  </div>
+
+  <span class="url">asafa100m-alt.github.io/peri-monthly-challenge</span>
+
+  <ol class="steps">
+    <li>
+      <span class="n">STEP 01</span>
+      <div class="t">掃碼進入</div>
+      <div class="d">手機相機對著 QR Code 就會跳出連結。</div>
+    </li>
+    <li>
+      <span class="n">STEP 02</span>
+      <div class="t">做完填成績</div>
+      <div class="d">填姓名、手機、完成時間。沒在時間內做完也能交，選「未完賽」填做到哪裡。</div>
+    </li>
+    <li>
+      <span class="n">STEP 03</span>
+      <div class="t">看自己第幾名</div>
+      <div class="d">送出後馬上進排行榜，你那一列會標成橘色。</div>
+    </li>
+  </ol>
+
+  <div class="tips">
+    <p><b>加到手機主畫面，用起來就像一個 App。</b>
+       iPhone：Safari 按分享鈕 →「加入主畫面」。Android：Chrome 右上角選單 →「加到主畫面」。</p>
+    <p><b>手機號碼只用來認人。</b>
+       排行榜上只會顯示姓名跟末四碼，不會公開完整號碼。同一個月重複提交以最新一次為準。</p>
+  </div>
+
+  <p class="foot">沛力訓練 PERI TRAINING</p>
+
+</div>
+
+<script>
+(function () {
+  var url = "https://asafa100m-alt.github.io/peri-monthly-challenge/";
+  var box = document.getElementById("qr");
+  if (typeof QRCode === "undefined") return;          // 載不到就留著文字備援
+  document.getElementById("fallback").remove();
+  new QRCode(box, {
+    text: url,
+    width: 900,                                        // 畫大張一點，列印才不會糊
+    height: 900,
+    colorDark: "#0C0C0C",
+    colorLight: "#FFFFFF",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+})();
+</script>
