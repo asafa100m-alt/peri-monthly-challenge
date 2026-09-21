@@ -7,21 +7,21 @@
 
 <style>
   :root{
-    --ink:#0C0C0C;
-    --panel:#151515;
-    --panel-2:#1E1E1E;
-    --line:rgba(255,255,255,.09);
-    --line-strong:rgba(255,255,255,.18);
-    --accent:#F05A32;
-    --accent-hot:#FF7A4D;
-    --accent-dim:rgba(240,90,50,.14);
-    --text:#FFFFFF;
-    --muted:#9C9C9C;
-    --muted-2:#6E6E6E;
-    --gold:#E8B44A;
-    --silver:#C6CCD2;
-    --bronze:#C77B4A;
-    --ok:#4FBF7B;
+    --ink:#F6F5F4;              /* 頁面底色 */
+    --panel:#FFFFFF;            /* 卡片 */
+    --panel-2:#F2F0EE;          /* 輸入框 */
+    --line:rgba(0,0,0,.10);
+    --line-strong:rgba(0,0,0,.22);
+    --accent:#F05A32;           /* 色塊與按鈕，沛力的橘 */
+    --accent-hot:#B8401B;       /* 白底上當文字或 hover 用的深橘 */
+    --accent-dim:rgba(240,90,50,.12);
+    --text:#17130F;
+    --muted:#6B645D;
+    --muted-2:#9B938B;
+    --gold:#B07C12;
+    --silver:#7E848A;
+    --bronze:#A05C33;
+    --ok:#1E7A45;
 
     --display:"Barlow Condensed","PingFang TC","Noto Sans TC",sans-serif;
     --body:"DM Sans","PingFang TC","Noto Sans TC",system-ui,sans-serif;
@@ -34,7 +34,6 @@
     color:var(--text);
     font-size:15px;
     line-height:1.55;
-    -webkit-font-smoothing:antialiased;
   }
   *{box-sizing:border-box;}
   [hidden]{display:none !important;}   /* 否則 .months 的 display:flex 會蓋掉 hidden */
@@ -46,7 +45,7 @@
   /* ---------- header ---------- */
   .topbar{
     position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
-    background:rgba(12,12,12,.94);
+    background:rgba(255,255,255,.92);
     backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line);
   }
@@ -82,7 +81,7 @@
   .board-title{margin:6px 0 0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;letter-spacing:.02em;text-wrap:balance;}
   .board-kind{
     font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.14em;
-    color:var(--accent);text-transform:uppercase;display:block;margin-bottom:4px;
+    color:var(--accent-hot);text-transform:uppercase;display:block;margin-bottom:4px;
   }
   .window{margin:7px 0 0;font-size:12px;color:var(--muted-2);letter-spacing:.02em;}
 
@@ -110,21 +109,6 @@
     margin:15px 0 0;padding-top:13px;border-top:1px solid var(--line);
     font-size:12.5px;color:var(--muted-2);font-variant-numeric:tabular-nums;
   }
-
-  /* ---------- 摺疊區塊 ---------- */
-  .box{border:1px solid var(--line);background:var(--panel);margin-top:14px;}
-  .box > summary{
-    list-style:none;cursor:pointer;padding:14px 16px;
-    font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.06em;
-    display:flex;align-items:center;justify-content:space-between;
-  }
-  .box > summary::-webkit-details-marker{display:none;}
-  .box > summary::after{content:"＋";color:var(--accent);font-size:17px;font-weight:500;}
-  .box[open] > summary::after{content:"－";}
-  .box[open] > summary{border-bottom:1px solid var(--line);}
-  .box.primary > summary{background:var(--accent);color:#fff;}
-  .box.primary > summary::after{color:#fff;}
-  .box .form,.box .hist{border:0;background:none;}
 
   /* ---------- section heading ---------- */
   .sec{margin-top:30px;}
@@ -170,8 +154,8 @@
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
     padding:10px 11px;font-family:var(--body);font-size:15px;border-radius:0;
   }
-  input::placeholder,textarea::placeholder{color:#565656;}
-  input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;}
+  input::placeholder,textarea::placeholder{color:#A9A29B;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent-hot);outline:none;}
   textarea{resize:vertical;min-height:62px;}
   .seg{display:flex;gap:0;}
   .seg button{
@@ -217,13 +201,13 @@
   .wrap.is-loading > *:not(#banner):not(#loading){display:none;}
   .banner{margin-top:14px;padding:10px 13px;font-size:12.5px;line-height:1.6;border-left:2px solid var(--accent);background:var(--accent-dim);color:var(--muted);}
   .banner b{color:var(--text);}
-  .banner.bad{border-left-color:#E0563C;background:rgba(224,86,60,.12);}
+  .banner.bad{border-left-color:#C0392B;background:rgba(192,57,43,.08);}
   .loading{padding:50px 0;text-align:center;color:var(--muted-2);font-family:var(--display);font-size:18px;letter-spacing:.08em;}
   .btn-lookup{
     width:100%;padding:10px;margin-top:2px;background:transparent;border:1px solid var(--line-strong);
     color:var(--muted);cursor:pointer;font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.08em;
   }
-  .btn-lookup:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-lookup:hover{border-color:var(--accent-hot);color:var(--accent-hot);}
   .submit[aria-busy="true"]{background:var(--panel-2);color:var(--muted-2);}
 
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
@@ -255,10 +239,10 @@
     <p class="stats" id="stats"></p>
   </section>
 
-  <details class="box primary" id="submit-box">
-    <summary id="submit-summary">交成績</summary>
+  <section class="sec">
+    <h2 class="sec-head" id="submit-summary">交成績</h2>
     <div id="submit-slot"></div>
-  </details>
+  </section>
 
   <section class="sec">
     <h2 class="sec-head">排行榜</h2>
@@ -269,8 +253,8 @@
     <ol class="lb" id="board"></ol>
   </section>
 
-  <details class="box" id="hist-box">
-    <summary>我的歷程</summary>
+  <section class="sec">
+    <h2 class="sec-head">我的歷程</h2>
     <div class="hist">
       <div class="row">
         <div class="field"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
@@ -279,7 +263,7 @@
       <button class="btn-lookup" id="h-go" type="button">查詢</button>
       <ul class="hist-rows" id="hist"></ul>
     </div>
-  </details>
+  </section>
 
   <p class="demo">成績由學員自行填寫，教練會定期查看。把這頁加到手機主畫面，用起來就像一個 App。</p>
 
@@ -457,16 +441,13 @@ function drawLeaderboard(){
 }
 
 function drawSubmit(){
-  const m = cur(), box = $("submit-box"), sum = $("submit-summary");
+  const m = cur(), sum = $("submit-summary");
   if(!m.isOpen){
-    box.classList.remove("primary");
-    box.open = true;
     sum.textContent = esc(m.label) + "挑戰已截止";
     $("submit-slot").innerHTML =
       `<div class="locked">可以回看排行榜，但不能再交成績。切回進行中的月份即可提交。</div>`;
     return;
   }
-  box.classList.add("primary");
   sum.textContent = "交成績";
   const stOpts = m.stations.map((s,i) => `<option value="${i}">${i+1}. ${esc(s.name)}</option>`).join("");
   const progressFields = `
@@ -604,7 +585,6 @@ async function onSubmit(e){
     sex = r.sex;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
     drawLeaderboard(); drawHistory();
-    $("submit-box").open = false;                 // 收起表單，直接看排名
     document.querySelector(".lb .me")?.scrollIntoView({behavior:"smooth", block:"center"});
   }catch(err){
     alert("送出失敗：" + err.message + "\n\n網路狀況不好時再試一次即可，不會重複記錄。");

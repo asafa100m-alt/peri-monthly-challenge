@@ -8,15 +8,11 @@
 
 <style>
   :root{
-    --ink:#0C0C0C;
-    --panel:#151515;
-    --line:rgba(255,255,255,.10);
-    --line-strong:rgba(255,255,255,.20);
-    --accent:#F05A32;
-    --accent-hot:#FF7A4D;
-    --text:#FFFFFF;
-    --muted:#9C9C9C;
-    --muted-2:#6E6E6E;
+    --ink:#F6F5F4; --panel:#FFFFFF; --panel-2:#F2F0EE;
+    --line:rgba(0,0,0,.10); --line-strong:rgba(0,0,0,.22);
+    --accent:#F05A32; --accent-hot:#B8401B; --accent-dim:rgba(240,90,50,.12);
+    --text:#17130F; --muted:#6B645D; --muted-2:#9B938B;
+    --ok:#1E7A45;
     --card:#FFFFFF;
     --display:"Barlow Condensed","PingFang TC","Noto Sans TC",sans-serif;
     --body:"DM Sans","PingFang TC","Noto Sans TC",system-ui,sans-serif;
@@ -25,7 +21,7 @@
   html,body{background:var(--ink);}
   body{
     margin:0;font-family:var(--body);color:var(--text);
-    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+    font-size:15px;line-height:1.55;
   }
   *{box-sizing:border-box;}
 
@@ -48,7 +44,7 @@
   }
   .kicker{
     font-family:var(--display);font-size:14px;font-weight:600;letter-spacing:.22em;
-    color:var(--accent);text-transform:uppercase;margin:0;
+    color:var(--accent-hot);text-transform:uppercase;margin:0;
   }
   .lede{color:var(--muted);font-size:15px;margin:10px auto 0;max-width:30em;}
 
@@ -59,7 +55,7 @@
     margin:28px auto 0;
     padding:20px;
     display:grid;place-items:center;
-    box-shadow:0 0 0 1px rgba(255,255,255,.12);
+    box-shadow:0 0 0 1px rgba(0,0,0,.10);
   }
   .qr-card img,.qr-card canvas{display:block;width:100%!important;height:auto!important;image-rendering:pixelated;}
   .qr-fallback{color:#111;font-size:13px;line-height:1.6;padding:24px 8px;}
@@ -83,7 +79,7 @@
   .steps li{background:var(--panel);padding:16px 14px;}
   .steps .n{
     font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.14em;
-    color:var(--accent);display:block;margin-bottom:5px;
+    color:var(--accent-hot);display:block;margin-bottom:5px;
   }
   .steps .t{font-family:var(--display);font-size:20px;font-weight:700;line-height:1.15;letter-spacing:.02em;}
   .steps .d{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;}
