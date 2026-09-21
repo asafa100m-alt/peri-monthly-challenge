@@ -294,14 +294,30 @@ let PLANS = [];         // 後台讀回來的所有月份
 let RESULTS = [];       // 目前月份的成績
 let plan = null;        // 正在編輯的課表
 
+// Apps Script 的轉址偶爾會吐出 HTML 錯誤頁（實測約十次一次），所以重試幾遍再放棄。
+// 交成績是「同一人同月覆蓋」的設計，重試不會變成兩筆。
+async function fetchJSON(url, opts, tries){
+  tries = tries || 3;
+  let last;
+  for(let i = 0; i < tries; i++){
+    try{
+      const res = await fetch(url, opts);
+      if(!res.ok) throw new Error("伺服器回應 " + res.status);
+      return JSON.parse(await res.text());   // 拿到 HTML 會在這裡丟例外，觸發重試
+    }catch(err){
+      last = err;
+      if(i < tries - 1) await new Promise(r => setTimeout(r, 700 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 async function api(action, payload){
   if(!LIVE) throw new Error("示範模式：還沒填入後台網址");
-  const res = await fetch(API_URL, {
+  return fetchJSON(API_URL, {
     method:"POST",
     body: JSON.stringify(Object.assign({action, pw:PW}, payload || {}))
   });
-  if(!res.ok) throw new Error("伺服器回應 " + res.status);
-  return res.json();
 }
 function banner(html, bad){
   const b = $("banner");
@@ -476,8 +492,7 @@ function render(){ drawStations(); drawPreview(); }
 
 async function loadPlans(){
   try{
-    const res = await fetch(API_URL + "?action=bootstrap");
-    const j = await res.json();
+    const j = await fetchJSON(API_URL + "?action=bootstrap");
     if(!j.ok) throw new Error(j.error || "讀取失敗");
     PLANS = j.data.months || [];
     drawPlanList(); drawMonthSelect();

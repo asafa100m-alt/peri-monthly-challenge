@@ -314,18 +314,32 @@ const isDnf = r => r.sec == null;
    不會觸發 Apps Script 處理不了的 CORS 預檢。
 ------------------------------------------------ */
 
+// Apps Script 的轉址偶爾會吐出 HTML 錯誤頁（實測約十次一次），所以重試幾遍再放棄。
+// 交成績是「同一人同月覆蓋」的設計，重試不會變成兩筆。
+async function fetchJSON(url, opts, tries){
+  tries = tries || 3;
+  let last;
+  for(let i = 0; i < tries; i++){
+    try{
+      const res = await fetch(url, opts);
+      if(!res.ok) throw new Error("伺服器回應 " + res.status);
+      return JSON.parse(await res.text());   // 拿到 HTML 會在這裡丟例外，觸發重試
+    }catch(err){
+      last = err;
+      if(i < tries - 1) await new Promise(r => setTimeout(r, 700 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 async function api(action, payload){
-  const res = await fetch(API_URL, {
+  return fetchJSON(API_URL, {
     method:"POST",
     body: JSON.stringify(Object.assign({action}, payload || {}))
   });
-  if(!res.ok) throw new Error("伺服器回應 " + res.status);
-  return res.json();
 }
 async function fetchBootstrap(){
-  const res = await fetch(API_URL + "?action=bootstrap");
-  if(!res.ok) throw new Error("伺服器回應 " + res.status);
-  const j = await res.json();
+  const j = await fetchJSON(API_URL + "?action=bootstrap");
   if(!j.ok) throw new Error(j.error || "讀取失敗");
   return j.data;
 }
