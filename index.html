@@ -1,0 +1,760 @@
+<title>沛力每月小挑戰</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+
+<style>
+  :root{
+    --ink:#0C0C0C;
+    --panel:#151515;
+    --panel-2:#1E1E1E;
+    --line:rgba(255,255,255,.09);
+    --line-strong:rgba(255,255,255,.18);
+    --accent:#F05A32;
+    --accent-hot:#FF7A4D;
+    --accent-dim:rgba(240,90,50,.14);
+    --text:#FFFFFF;
+    --muted:#9C9C9C;
+    --muted-2:#6E6E6E;
+    --gold:#E8B44A;
+    --silver:#C6CCD2;
+    --bronze:#C77B4A;
+    --ok:#4FBF7B;
+
+    --display:"Barlow Condensed","PingFang TC","Noto Sans TC",sans-serif;
+    --body:"DM Sans","PingFang TC","Noto Sans TC",system-ui,sans-serif;
+  }
+
+  html,body{background:var(--ink);}
+  body{
+    margin:0;
+    font-family:var(--body);
+    color:var(--text);
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  *{box-sizing:border-box;}
+  button{font:inherit;color:inherit;}
+  :focus-visible{outline:2px solid var(--accent-hot);outline-offset:2px;}
+
+  .wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:0 56px;}
+
+  /* ---------- header ---------- */
+  .topbar{
+    position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+    background:rgba(12,12,12,.94);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-in{max-width:560px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px;}
+  .mark{display:flex;align-items:baseline;gap:6px;font-family:var(--display);letter-spacing:.06em;}
+  .mark b{font-weight:700;font-size:20px;}
+  .mark span{font-weight:500;font-size:20px;color:var(--muted);}
+  .mark-rule{width:34px;height:3px;background:var(--accent);margin-top:5px;}
+  .topbar h1{
+    margin:0;font-family:var(--display);font-weight:600;font-size:17px;
+    letter-spacing:.04em;color:var(--muted);margin-left:auto;
+  }
+
+  /* ---------- month strip ---------- */
+  .months{display:flex;gap:8px;overflow-x:auto;padding:14px 0 2px;scrollbar-width:none;}
+  .months::-webkit-scrollbar{display:none;}
+  .month{
+    flex:0 0 auto;padding:7px 14px;border-radius:999px;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.03em;
+    white-space:nowrap;transition:background .15s,color .15s,border-color .15s;
+  }
+  .month:hover{border-color:var(--line-strong);color:var(--text);}
+  .month[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .month .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:middle;}
+
+  /* ---------- whiteboard ---------- */
+  .board{
+    margin-top:16px;background:var(--panel);
+    border:1px solid var(--line);border-top:3px solid var(--accent);
+    padding:20px 18px 18px;
+  }
+  .board-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .board-title{margin:0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;letter-spacing:.02em;text-wrap:balance;}
+  .board-kind{
+    font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.14em;
+    color:var(--accent);text-transform:uppercase;display:block;margin-bottom:4px;
+  }
+  .window{font-size:12px;color:var(--muted-2);letter-spacing:.02em;white-space:nowrap;padding-top:6px;}
+
+  .stations{list-style:none;margin:18px 0 0;padding:0;border-top:1px dashed var(--line-strong);}
+  .stations li{
+    display:flex;align-items:baseline;gap:12px;
+    padding:11px 0;border-bottom:1px dashed var(--line);
+  }
+  .st-no{
+    font-family:var(--display);font-size:13px;font-weight:600;color:var(--muted-2);
+    width:18px;flex:0 0 18px;font-variant-numeric:tabular-nums;
+  }
+  .st-qty{
+    font-family:var(--display);font-size:22px;font-weight:700;line-height:1;
+    min-width:58px;flex:0 0 auto;font-variant-numeric:tabular-nums;
+  }
+  .st-name{flex:1;font-size:15px;}
+  .st-load{font-size:12.5px;color:var(--muted);}
+  .st-load .on{color:var(--accent-hot);font-weight:700;}
+
+  .board-note{margin:14px 0 0;font-size:13px;color:var(--muted);line-height:1.6;}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-top:0;}
+  .stat{background:var(--panel);padding:13px 12px;}
+  .stat dt{margin:0;font-size:11.5px;color:var(--muted-2);letter-spacing:.06em;}
+  .stat dd{margin:2px 0 0;font-family:var(--display);font-size:25px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .stat dd small{font-size:13px;font-weight:500;color:var(--muted);margin-left:2px;}
+
+  /* ---------- section heading ---------- */
+  .sec{margin-top:34px;}
+  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .sec-head h2{margin:0;font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.04em;}
+  .sec-head .bar{width:20px;height:2px;background:var(--accent);}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;border:1px solid var(--line);background:var(--panel);}
+  .tab{
+    flex:1;padding:9px 0;text-align:center;cursor:pointer;background:none;border:0;
+    font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--muted);
+    border-right:1px solid var(--line);transition:background .15s,color .15s;
+  }
+  .tab:last-child{border-right:0;}
+  .tab[aria-selected="true"]{background:var(--accent-dim);color:var(--accent-hot);box-shadow:inset 0 -2px 0 var(--accent);}
+
+  /* ---------- leaderboard ---------- */
+  .lb{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-top:0;}
+  .lb li{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel);}
+  .lb li:last-child{border-bottom:0;}
+  .lb li.me{background:linear-gradient(90deg,var(--accent-dim),transparent 70%);box-shadow:inset 2px 0 0 var(--accent);}
+  .rank{font-family:var(--display);font-size:24px;font-weight:700;line-height:1;color:var(--muted-2);font-variant-numeric:tabular-nums;text-align:center;}
+  .rank.r1{color:var(--gold);} .rank.r2{color:var(--silver);} .rank.r3{color:var(--bronze);}
+  .who{min-width:0;}
+  .name{font-weight:500;}
+  .name em{font-style:normal;color:var(--muted-2);font-size:12px;margin-left:5px;font-variant-numeric:tabular-nums;}
+  .note{font-size:12.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere;}
+  .score{text-align:right;}
+  .score b{font-family:var(--display);font-size:23px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .score span{display:block;font-size:11.5px;color:var(--muted-2);margin-top:3px;white-space:nowrap;}
+  .score b.cap{font-size:16px;letter-spacing:.1em;color:var(--muted-2);}
+  .lb li.dnf .rank{color:var(--muted-2);opacity:.65;}
+  .lb li.dnf .name{color:var(--muted);}
+  .capline{display:block;width:fit-content;margin-top:9px;font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--muted);border:1px solid var(--line-strong);padding:2px 7px;}
+  .empty{padding:26px 14px;text-align:center;color:var(--muted-2);font-size:14px;background:var(--panel);border:1px solid var(--line);border-top:0;}
+
+  /* ---------- form ---------- */
+  .form{border:1px solid var(--line);background:var(--panel);padding:18px 16px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .field{flex:1 1 150px;min-width:0;margin-bottom:13px;}
+  .field.full{flex:1 1 100%;}
+  label{display:block;font-size:12px;color:var(--muted);letter-spacing:.04em;margin-bottom:5px;}
+  input,select,textarea{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:10px 11px;font-family:var(--body);font-size:15px;border-radius:0;
+  }
+  input::placeholder,textarea::placeholder{color:#565656;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;}
+  textarea{resize:vertical;min-height:62px;}
+  .seg{display:flex;gap:0;}
+  .seg button{
+    flex:1;padding:10px 0;background:var(--panel-2);border:1px solid var(--line);
+    cursor:pointer;font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--muted);
+  }
+  .seg button+button{border-left:0;}
+  .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .preview{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--panel-2);border:1px dashed var(--line-strong);padding:12px 14px;margin:4px 0 14px;
+  }
+  .preview .lbl{font-size:12px;color:var(--muted);letter-spacing:.04em;}
+  .preview .val{font-family:var(--display);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+
+  .submit{
+    width:100%;padding:14px;background:var(--accent);border:0;cursor:pointer;color:#fff;
+    font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.1em;
+    transition:background .15s;
+  }
+  .submit:hover{background:var(--accent-hot);}
+  .submit:disabled{background:var(--panel-2);color:var(--muted-2);cursor:not-allowed;}
+  .locked{
+    border:1px solid var(--line);background:var(--panel);padding:22px 16px;text-align:center;color:var(--muted);font-size:14px;
+  }
+  .locked b{display:block;font-family:var(--display);font-size:19px;font-weight:700;color:var(--text);letter-spacing:.04em;margin-bottom:4px;}
+  .hint{font-size:12px;color:var(--muted-2);margin:9px 0 0;line-height:1.6;}
+
+  /* ---------- history ---------- */
+  .hist{border:1px solid var(--line);background:var(--panel);padding:16px;}
+  .hist-rows{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:12px;}
+  .hist-rows li{display:grid;grid-template-columns:52px 1fr 60px;gap:10px;align-items:center;}
+  .h-month{font-family:var(--display);font-size:15px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .h-track{height:22px;background:var(--panel-2);position:relative;}
+  .h-fill{height:100%;background:var(--accent);display:flex;align-items:center;padding-left:8px;min-width:fit-content;}
+  .h-fill b{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:.03em;white-space:nowrap;}
+  .h-rank{text-align:right;font-family:var(--display);font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .h-rank small{font-size:11px;color:var(--muted-2);font-weight:500;}
+
+  .demo{
+    margin-top:30px;border:1px solid var(--line);background:var(--panel-2);
+    padding:13px 15px;font-size:12.5px;color:var(--muted);line-height:1.65;
+  }
+  .demo b{color:var(--accent-hot);}
+
+  /* ---------- 系統訊息 ---------- */
+  .banner{margin-top:14px;padding:10px 13px;font-size:12.5px;line-height:1.6;border-left:2px solid var(--accent);background:var(--accent-dim);color:var(--muted);}
+  .banner b{color:var(--text);}
+  .banner.bad{border-left-color:#E0563C;background:rgba(224,86,60,.12);}
+  .loading{padding:50px 0;text-align:center;color:var(--muted-2);font-family:var(--display);font-size:18px;letter-spacing:.08em;}
+  .btn-lookup{
+    width:100%;padding:10px;margin-top:2px;background:transparent;border:1px solid var(--line-strong);
+    color:var(--muted);cursor:pointer;font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.08em;
+  }
+  .btn-lookup:hover{border-color:var(--accent);color:var(--accent);}
+  .submit[aria-busy="true"]{background:var(--panel-2);color:var(--muted-2);}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div>
+      <div class="mark"><b>PERI</b><span>TRAINING</span></div>
+      <div class="mark-rule"></div>
+    </div>
+    <h1>每月小挑戰</h1>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="banner" id="banner" hidden></div>
+  <div class="loading" id="loading">載入中⋯</div>
+
+  <div class="months" role="tablist" aria-label="選擇月份" id="months"></div>
+
+  <section class="board" aria-labelledby="board-title">
+    <div class="board-head">
+      <div>
+        <span class="board-kind" id="board-kind">AMRAP · 12 分鐘</span>
+        <h2 class="board-title" id="board-title">九月：引擎室</h2>
+      </div>
+      <div class="window" id="board-window">9/01 – 9/30</div>
+    </div>
+    <ol class="stations" id="stations"></ol>
+    <p class="board-note" id="board-note"></p>
+  </section>
+
+  <dl class="stats" id="stats"></dl>
+
+  <section class="sec">
+    <div class="sec-head"><span class="bar"></span><h2>排行榜</h2></div>
+    <div class="tabs" role="tablist" aria-label="性別分組">
+      <button class="tab" role="tab" aria-selected="true" data-sex="M">男子組</button>
+      <button class="tab" role="tab" aria-selected="false" data-sex="F">女子組</button>
+    </div>
+    <ol class="lb" id="board"></ol>
+  </section>
+
+  <section class="sec" id="submit-sec">
+    <div class="sec-head"><span class="bar"></span><h2>交成績</h2></div>
+    <div id="submit-slot"></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><span class="bar"></span><h2>我的歷程</h2></div>
+    <div class="hist">
+      <div class="row">
+        <div class="field"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
+        <div class="field"><label for="h-phone">手機</label><input id="h-phone" placeholder="0912345678" inputmode="numeric" autocomplete="tel"></div>
+      </div>
+      <button class="btn-lookup" id="h-go" type="button">查詢我的歷程</button>
+      <ul class="hist-rows" id="hist"></ul>
+    </div>
+  </section>
+
+  <p class="demo">
+    <b>這是畫面原型</b>，排行榜與歷程都是示範資料，還沒接後台。確認長相與流程之後，我再接上 Google 試算表，教練就能在後台換課表、改成績，學生交的成績會即時上榜。
+  </p>
+
+</div>
+
+<script>
+/* ==========================================================================
+   沛力訓練每月小挑戰 — 學生端
+   把下面的 API_URL 換成 Apps Script 部署後拿到的網址（結尾是 /exec）。
+   沒填的話頁面會用示範資料跑，方便先看畫面。
+   ========================================================================== */
+
+const API_URL = "https://script.google.com/macros/s/AKfycbwzomM0U0En-LccK3eJXH0gHZFVN36_IvjRFMUi4NE3_C9hm_1Zfns1WfoLwJD82Di2/exec";
+
+const LIVE = /^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL);
+const $ = id => document.getElementById(id);
+
+let MONTHS = [];
+let monthId = null;
+let sex = "M";
+let formSex = "M";
+let formDone = true;
+let myPid = null;
+let busy = false;
+
+try { myPid = localStorage.getItem("peri.pid"); } catch(e) {}
+
+const cur = () => MONTHS.find(m => m.id === monthId) || MONTHS[0];
+const isDnf = r => r.sec == null;
+
+/* ---------------- 與後端溝通 ----------------
+   POST 用純字串 body，瀏覽器會送 text/plain，屬於簡單請求，
+   不會觸發 Apps Script 處理不了的 CORS 預檢。
+------------------------------------------------ */
+
+async function api(action, payload){
+  const res = await fetch(API_URL, {
+    method:"POST",
+    body: JSON.stringify(Object.assign({action}, payload || {}))
+  });
+  if(!res.ok) throw new Error("伺服器回應 " + res.status);
+  return res.json();
+}
+async function fetchBootstrap(){
+  const res = await fetch(API_URL + "?action=bootstrap");
+  if(!res.ok) throw new Error("伺服器回應 " + res.status);
+  const j = await res.json();
+  if(!j.ok) throw new Error(j.error || "讀取失敗");
+  return j.data;
+}
+
+function banner(html, bad){
+  const b = $("banner");
+  b.innerHTML = html;
+  b.className = "banner" + (bad ? " bad" : "");
+  b.hidden = false;
+}
+
+/* ---------------- 排名 ---------------- */
+
+// 未完賽的三層比較：輪數 → 停在第幾站 → 該站完成量。
+// 各站單位不同（下 / 公尺 / cal），但只有同站才互比，所以不需要換算。
+function cmpProgress(a,b){
+  const ka = [a.rounds,a.st,a.part], kb = [b.rounds,b.st,b.part];
+  for(let i=0;i<3;i++) if(ka[i]!==kb[i]) return kb[i]-ka[i];
+  return 0;
+}
+function cmpFortime(a,b){
+  if(isDnf(a) !== isDnf(b)) return isDnf(a) ? 1 : -1;   // 完賽者一律排在未完賽之前
+  if(!isDnf(a)) return a.sec - b.sec;                   // 都完賽：比誰快
+  return cmpProgress(a,b);                              // 都未完賽：比誰做得多
+}
+function ranked(m,sx){
+  return m.results.filter(r => r.sex===sx).sort(m.type==="fortime" ? cmpFortime : cmpProgress);
+}
+
+/* ---------------- 成績顯示 ---------------- */
+
+function mmss(sec){ return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0"); }
+function unitOf(u){ return u==="m" ? "m" : u==="cal" ? "cal" : ""; }
+function progress(m,r){
+  if(!r.part) return r.rounds + " 輪整";
+  const st = m.stations[r.st] || {name:"最後一站", unit:"下"};
+  return r.rounds + " 輪 + " + st.name + " " + r.part + (st.unit==="下" ? "下" : st.unit);
+}
+function scoreMain(m,r){
+  if(m.type==="fortime") return isDnf(r) ? "CAP" : mmss(r.sec);
+  return r.rounds + (r.part ? "+" : "");
+}
+function scoreSub(m,r){
+  if(m.type==="fortime") return isDnf(r) ? progress(m,r) : "完賽";
+  return progress(m,r);
+}
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+/* ---------------- 繪製 ---------------- */
+
+function drawMonths(){
+  $("months").innerHTML = MONTHS.map(m =>
+    `<button class="month" role="tab" data-id="${m.id}" aria-selected="${m.id===monthId}">
+       ${m.isOpen ? '<span class="dot"></span>' : ''}${m.label}
+     </button>`).join("");
+}
+
+function drawBoard(){
+  const m = cur();
+  $("board-kind").textContent = m.type === "amrap"
+    ? "AMRAP · " + Math.round(m.cap/60) + " 分鐘"
+    : m.rounds + " ROUND FOR TIME";
+  $("board-title").innerHTML = esc(m.title) + `<span class="capline">CAP ${mmss(m.cap)}</span>`;
+  $("board-window").textContent = m.isOpen ? m.window : m.window + " · 已結束";
+  $("board-note").textContent = m.note;
+
+  $("stations").innerHTML = m.stations.map((s,i) => {
+    const load = (s.M || s.F) ? `<div class="st-load">
+        <span class="${formSex==='M'?'on':''}">M ${esc(s.M)||"—"}</span> /
+        <span class="${formSex==='F'?'on':''}">F ${esc(s.F)||"—"}</span></div>` : "";
+    return `<li>
+      <span class="st-no">${i+1}</span>
+      <span class="st-qty">${s.qty}${unitOf(s.unit)}</span>
+      <span class="st-name">${esc(s.name)}${load}</span>
+    </li>`;
+  }).join("");
+}
+
+function drawStats(){
+  const m = cur(), all = m.results;
+  if(!all.length){
+    $("stats").innerHTML = `<div class="stat" style="grid-column:1/-1"><dt>本月狀況</dt><dd>0<small>人交成績</small></dd></div>`;
+    return;
+  }
+  let a, b;
+  if(m.type==="fortime"){
+    const fin = all.filter(r => !isDnf(r));
+    a = {t:"完賽率", v:Math.round(fin.length/all.length*100), u:"%"};
+    b = fin.length
+      ? {t:"平均完賽時間", v:mmss(Math.round(fin.reduce((s,r)=>s+r.sec,0)/fin.length)), u:""}
+      : {t:"平均完賽時間", v:"—", u:""};
+  }else{
+    a = {t:"男 / 女", v:all.filter(r=>r.sex==='M').length + " / " + all.filter(r=>r.sex==='F').length, u:""};
+    b = {t:"平均輪數", v:(all.reduce((s,r)=>s+r.rounds,0)/all.length).toFixed(1), u:"輪"};
+  }
+  $("stats").innerHTML = `
+    <div class="stat"><dt>參與人數</dt><dd>${all.length}<small>人</small></dd></div>
+    <div class="stat"><dt>${a.t}</dt><dd>${a.v}<small>${a.u}</small></dd></div>
+    <div class="stat"><dt>${b.t}</dt><dd>${b.v}<small>${b.u}</small></dd></div>`;
+}
+
+function drawLeaderboard(){
+  const m = cur(), list = ranked(m,sex);
+  const fresh = document.createElement("ol");
+  fresh.className = "lb"; fresh.id = "board";
+  fresh.innerHTML = list.length ? list.map((r,i) => `
+    <li class="${isDnf(r) && m.type==='fortime' ? 'dnf' : ''} ${myPid && r.pid===myPid ? 'me' : ''}">
+      <span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span>
+      <span class="who">
+        <span class="name">${esc(r.name)}<em>${esc(r.tail)}</em></span>
+        ${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}
+      </span>
+      <span class="score">
+        <b class="${scoreMain(m,r)==='CAP' ? 'cap' : ''}">${scoreMain(m,r)}</b>
+        <span>${scoreSub(m,r)}</span>
+      </span>
+    </li>`).join("")
+    : `<div class="empty">這組還沒有人交成績，你可以是第一個。</div>`;
+  $("board").replaceWith(fresh);
+}
+
+function drawSubmit(){
+  const m = cur();
+  if(!m.isOpen){
+    $("submit-slot").innerHTML =
+      `<div class="locked"><b>${esc(m.label)}挑戰已截止</b>可以回看排行榜，但不能再交成績。切回進行中的月份即可提交。</div>`;
+    return;
+  }
+  const stOpts = m.stations.map((s,i) => `<option value="${i}">${i+1}. ${esc(s.name)}</option>`).join("");
+  const progressFields = `
+    <div class="field"><label for="f-rounds">完成輪數</label>
+      <input id="f-rounds" type="number" min="0" value="0" inputmode="numeric"></div>
+    <div class="field"><label for="f-st">最後一輪停在</label>
+      <select id="f-st">${stOpts}</select></div>
+    <div class="field"><label for="f-part" id="f-part-label">該站已完成</label>
+      <input id="f-part" type="number" min="0" value="0" inputmode="numeric"></div>`;
+  const timeFields = `
+    <div class="field"><label for="f-min">完成時間 · 分</label>
+      <input id="f-min" type="number" min="0" placeholder="16" inputmode="numeric"></div>
+    <div class="field"><label for="f-sec">秒</label>
+      <input id="f-sec" type="number" min="0" max="59" placeholder="07" inputmode="numeric"></div>`;
+  const resultToggle = m.type!=="fortime" ? "" : `
+    <div class="field full"><label>結果</label>
+      <div class="seg" id="f-done">
+        <button type="button" data-done="1" aria-pressed="${formDone}">時間內完賽</button>
+        <button type="button" data-done="0" aria-pressed="${!formDone}">未完賽 (CAP)</button>
+      </div>
+    </div>`;
+  const scoreFields = m.type!=="fortime" ? progressFields : (formDone ? timeFields : progressFields);
+
+  $("submit-slot").innerHTML = `
+    <form class="form" id="form" novalidate>
+      <div class="row">
+        <div class="field"><label for="f-name">姓名</label>
+          <input id="f-name" placeholder="王小明" autocomplete="name" required></div>
+        <div class="field"><label for="f-phone">手機號碼</label>
+          <input id="f-phone" placeholder="0912345678" inputmode="numeric" autocomplete="tel" required></div>
+      </div>
+      <div class="field full"><label>組別</label>
+        <div class="seg" id="f-sex">
+          <button type="button" data-sex="M" aria-pressed="${formSex==='M'}">男子組</button>
+          <button type="button" data-sex="F" aria-pressed="${formSex==='F'}">女子組</button>
+        </div>
+      </div>
+      ${resultToggle}
+      <div class="row">${scoreFields}</div>
+      <div class="preview"><span class="lbl">你的成績</span><span class="val" id="f-preview">—</span></div>
+      <div class="field full"><label for="f-note">完賽心得（選填，會顯示在排行榜）</label>
+        <textarea id="f-note" maxlength="40" placeholder="例：前兩輪衝太快，後面付出代價"></textarea></div>
+      <button class="submit" type="submit" id="f-submit">送出成績</button>
+      <p class="hint">手機號碼只用來辨識身分，排行榜上只顯示姓名與末四碼，不會公開完整號碼。同一個月重複提交以最新一次為準。</p>
+    </form>`;
+
+  // 記住上次填的姓名與手機，省得每個月重打
+  try{
+    $("f-name").value  = localStorage.getItem("peri.name")  || "";
+    $("f-phone").value = localStorage.getItem("peri.phone") || "";
+  }catch(e){}
+
+  $("f-sex").addEventListener("click", e => {
+    const b = e.target.closest("button[data-sex]"); if(!b) return;
+    formSex = b.dataset.sex;
+    [...$("f-sex").children].forEach(c => c.setAttribute("aria-pressed", c.dataset.sex===formSex));
+    drawBoard(); updatePreview();
+  });
+  if($("f-done")) $("f-done").addEventListener("click", e => {
+    const b = e.target.closest("button[data-done]"); if(!b) return;
+    const keep = {n:$("f-name").value, p:$("f-phone").value, t:$("f-note").value};
+    formDone = b.dataset.done === "1";
+    drawSubmit();
+    $("f-name").value = keep.n; $("f-phone").value = keep.p; $("f-note").value = keep.t;
+    updatePreview();
+  });
+  $("form").addEventListener("input", updatePreview);
+  if($("f-st")) $("f-st").addEventListener("change", updatePreview);
+  $("form").addEventListener("submit", onSubmit);
+  updatePreview();
+}
+
+function readForm(){
+  const m = cur();
+  const r = {
+    name:($("f-name").value||"").trim(),
+    phone:($("f-phone").value||"").replace(/\D/g,""),
+    sex:formSex,
+    note:($("f-note").value||"").trim()
+  };
+  if(m.type==="fortime" && formDone){
+    r.sec = (+$("f-min").value||0)*60 + (+$("f-sec").value||0);
+  }else{
+    r.rounds = +$("f-rounds").value||0;
+    r.st     = +$("f-st").value||0;
+    r.part   = +$("f-part").value||0;
+  }
+  return r;
+}
+
+function updatePreview(){
+  const m = cur(), r = readForm();
+  if($("f-part-label")){
+    const st = m.stations[r.st] || {unit:"下", qty:999};
+    $("f-part-label").textContent = "該站已完成（" + (st.unit==="下" ? "下" : st.unit) + "）";
+    $("f-part").max = st.qty;
+  }
+  const filled = isDnf(r) ? (r.rounds > 0 || r.part > 0) : r.sec > 0;
+  $("f-preview").textContent = !filled ? "—"
+    : (isDnf(r) ? "CAP · " + progress(m,r) : mmss(r.sec));
+}
+
+async function onSubmit(e){
+  e.preventDefault();
+  if(busy) return;
+  const m = cur(), r = readForm();
+  if(!r.name || r.phone.length < 9) return alert("請填寫姓名與完整手機號碼。");
+  if(!isDnf(r) && r.sec <= 0)        return alert("請填寫完成時間。");
+  if(!isDnf(r) && r.sec > m.cap)     return alert(`超過時間上限 ${mmss(m.cap)}，請改選「未完賽 (CAP)」並填寫做到哪裡。`);
+  if(isDnf(r) && !r.rounds && !r.part) return alert("請填寫做到第幾輪。");
+
+  try{
+    localStorage.setItem("peri.name", r.name);
+    localStorage.setItem("peri.phone", r.phone);
+  }catch(err){}
+
+  const btn = $("f-submit");
+  busy = true; btn.disabled = true; btn.setAttribute("aria-busy","true"); btn.textContent = "送出中⋯";
+
+  try{
+    if(LIVE){
+      const res = await api("submit", Object.assign({monthId:m.id, done:!isDnf(r)}, r));
+      if(!res.ok) throw new Error(res.error || "送出失敗");
+      setPid(res.pid);
+      await reload();
+    }else{
+      // 示範模式：只改本機資料，不會真的存起來
+      r.pid = demoPid(r.name, r.phone);
+      r.tail = r.phone.slice(-4);
+      const i = m.results.findIndex(x => x.pid === r.pid);
+      if(i >= 0) m.results[i] = r; else m.results.push(r);
+      setPid(r.pid);
+      redraw();
+    }
+    sex = r.sex;
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
+    drawLeaderboard(); drawHistory();
+    document.querySelector(".lb .me")?.scrollIntoView({behavior:"smooth", block:"center"});
+  }catch(err){
+    alert("送出失敗：" + err.message + "\n\n網路狀況不好時再試一次即可，不會重複記錄。");
+  }finally{
+    busy = false;
+    if($("f-submit")){
+      $("f-submit").disabled = false;
+      $("f-submit").removeAttribute("aria-busy");
+      $("f-submit").textContent = "送出成績";
+    }
+    if($("f-note")) $("f-note").value = "";
+  }
+}
+
+function setPid(p){
+  myPid = p;
+  try{ localStorage.setItem("peri.pid", p); }catch(e){}
+}
+
+function drawHistory(){
+  if(!myPid){
+    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名與手機，就能看到自己每個月的成績與名次。</li>`;
+    return;
+  }
+  const rows = [];
+  MONTHS.slice().reverse().forEach(m => {
+    const mine = m.results.find(r => r.pid === myPid);
+    if(!mine) return;
+    const list = ranked(m, mine.sex);
+    rows.push({m, mine, rank:list.indexOf(mine)+1, of:list.length});
+  });
+  if(!rows.length){
+    $("hist").innerHTML =
+      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名與手機是否與交成績時填的一致。</li>`;
+    return;
+  }
+  const most = Math.max(...rows.map(r => r.of));
+  $("hist").innerHTML = rows.map(r => {
+    const pct = Math.max(22, Math.round((r.of - r.rank + 1) / most * 100));   // 名次越前，長條越長
+    const label = r.m.type==="fortime" && !isDnf(r.mine) ? mmss(r.mine.sec) : scoreSub(r.m, r.mine);
+    return `<li>
+      <span class="h-month">${esc(r.m.label)}</span>
+      <span class="h-track"><span class="h-fill" style="width:${pct}%"><b>${label}</b></span></span>
+      <span class="h-rank">${r.rank}<small>/${r.of}</small></span>
+    </li>`;
+  }).join("");
+}
+
+async function lookup(){
+  const name = $("h-name").value.trim(), phone = $("h-phone").value.replace(/\D/g,"");
+  if(!name || phone.length < 9) return alert("請填寫姓名與完整手機號碼。");
+  try{
+    if(LIVE){
+      const res = await api("identify", {name, phone});
+      if(!res.ok) throw new Error(res.error || "查詢失敗");
+      setPid(res.pid);
+    }else{
+      setPid(demoPid(name, phone));
+    }
+    drawHistory(); drawLeaderboard();
+  }catch(err){
+    alert("查詢失敗：" + err.message);
+  }
+}
+const demoPid = (n,p) => "demo-" + n.replace(/\s+/g,"") + "-" + p;
+
+/* ---------------- 載入與重畫 ---------------- */
+
+function redraw(){
+  drawMonths(); drawBoard(); drawStats(); drawLeaderboard(); drawSubmit(); drawHistory();
+}
+
+async function reload(){
+  const data = await fetchBootstrap();
+  MONTHS = data.months || [];
+  if(!MONTHS.some(m => m.id === monthId)){
+    monthId = (MONTHS.find(m => m.isOpen) || MONTHS[0] || {}).id;
+  }
+  if(data.notice) banner(esc(data.notice));
+  redraw();
+}
+
+async function boot(){
+  if(!LIVE){
+    MONTHS = DEMO_MONTHS;
+    monthId = MONTHS[0].id;
+    $("loading").hidden = true;
+    banner("<b>示範模式</b> —— 還沒填入後台網址，畫面上的成績都是假資料，交出去不會被保存。把 Apps Script 的網址填進 <code>API_URL</code> 就會連上真的後台。");
+    redraw();
+    return;
+  }
+  try{
+    await reload();
+    $("loading").hidden = true;
+  }catch(err){
+    $("loading").hidden = true;
+    banner("<b>連不上後台</b> —— " + esc(err.message) +
+           "。請確認 Apps Script 已部署為網頁應用程式、存取權限設為「任何人」，網址結尾是 /exec。", true);
+  }
+}
+
+/* ---------------- 事件 ---------------- */
+
+$("months").addEventListener("click", e => {
+  const b = e.target.closest(".month"); if(!b) return;
+  monthId = b.dataset.id; formDone = true;
+  redraw();
+});
+
+document.querySelector(".tabs").addEventListener("click", e => {
+  const t = e.target.closest(".tab"); if(!t) return;
+  sex = t.dataset.sex;
+  document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x===t));
+  drawLeaderboard();
+});
+
+$("h-go").addEventListener("click", lookup);
+
+/* ---------------- 示範資料（LIVE 模式不會用到） ---------------- */
+
+const DEMO_MONTHS = [
+  {
+    id:"2026-09", label:"9月", title:"九月：引擎室", isOpen:true, window:"9/01 – 9/30",
+    type:"fortime", rounds:4, cap:1200,
+    note:"完成四輪計時，每輪依序完成三站。20 分鐘未完成記為未完賽，依完成進度排在完賽者之後。",
+    stations:[
+      {name:"DB Snatch",      qty:16,  unit:"下", M:"15kg", F:"10kg"},
+      {name:"Row Erg",        qty:300, unit:"m",  M:"", F:""},
+      {name:"Burpee to plank",qty:12,  unit:"下", M:"", F:""}
+    ],
+    results:[
+      {pid:"d1", name:"陳柏宇", tail:"2244", sex:"M", sec:824,  note:"划船是唯一能喘口氣的地方"},
+      {pid:"d2", name:"王建成", tail:"7788", sex:"M", sec:901,  note:""},
+      {pid:"d3", name:"林俊傑", tail:"5678", sex:"M", sec:967,  note:"Snatch 換手節奏抓到了"},
+      {pid:"d4", name:"李承翰", tail:"5544", sex:"M", sec:1088, note:""},
+      {pid:"d5", name:"張哲瑋", tail:"4455", sex:"M", sec:1174, note:"前兩輪衝太快，後面付出代價"},
+      {pid:"d6", name:"吳孟軒", tail:"2333", sex:"M", rounds:3, st:1, part:180, note:"差一點點，下個月一定完賽"},
+      {pid:"d7", name:"許雅婷", tail:"8899", sex:"F", sec:938,  note:"10kg 剛剛好，下個月想試 12"},
+      {pid:"d8", name:"陳思妤", tail:"6655", sex:"F", sec:1022, note:""},
+      {pid:"d9", name:"黃筱晴", tail:"3322", sex:"F", sec:1163, note:"最後一輪 burpee 全靠意志力"},
+      {pid:"d10",name:"劉宜蓁", tail:"6677", sex:"F", rounds:3, st:2, part:7,   note:"卡在最後七下"},
+      {pid:"d11",name:"蔡宛儒", tail:"2233", sex:"F", rounds:2, st:1, part:240, note:"第一次挑戰，先求把動作做對"}
+    ]
+  },
+  {
+    id:"2026-08", label:"8月", title:"八月：五輪地獄", isOpen:false, window:"8/01 – 8/31",
+    type:"fortime", rounds:5, cap:1200,
+    note:"完成五輪計時，每輪依序完成三站。20 分鐘未完成記為未完賽。",
+    stations:[
+      {name:"Wall Ball", qty:20, unit:"下", M:"9kg",  F:"6kg"},
+      {name:"Box Jump",  qty:15, unit:"下", M:"60cm", F:"50cm"},
+      {name:"Ring Row",  qty:12, unit:"下", M:"", F:""}
+    ],
+    results:[
+      {pid:"d1", name:"陳柏宇", tail:"2244", sex:"M", sec:882,  note:"最後一輪掉速"},
+      {pid:"d2", name:"王建成", tail:"7788", sex:"M", sec:915,  note:""},
+      {pid:"d3", name:"林俊傑", tail:"5678", sex:"M", sec:1027, note:"Box jump 保守了點"},
+      {pid:"d4", name:"李承翰", tail:"5544", sex:"M", sec:1104, note:""},
+      {pid:"d5", name:"張哲瑋", tail:"4455", sex:"M", rounds:4, st:2, part:5, note:""},
+      {pid:"d8", name:"陳思妤", tail:"6655", sex:"F", sec:1008, note:"Wall ball 終於不用停"},
+      {pid:"d7", name:"許雅婷", tail:"8899", sex:"F", sec:1041, note:""},
+      {pid:"d9", name:"黃筱晴", tail:"3322", sex:"F", sec:1195, note:""},
+      {pid:"d10",name:"劉宜蓁", tail:"6677", sex:"F", rounds:4, st:1, part:9, note:"卡在 box jump"}
+    ]
+  }
+];
+
+boot();
+</script>
