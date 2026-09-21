@@ -78,13 +78,12 @@
     border:1px solid var(--line);border-top:3px solid var(--accent);
     padding:20px 18px 18px;
   }
-  .board-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
-  .board-title{margin:0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;letter-spacing:.02em;text-wrap:balance;}
+  .board-title{margin:6px 0 0;font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;letter-spacing:.02em;text-wrap:balance;}
   .board-kind{
     font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.14em;
     color:var(--accent);text-transform:uppercase;display:block;margin-bottom:4px;
   }
-  .window{font-size:12px;color:var(--muted-2);letter-spacing:.02em;white-space:nowrap;padding-top:6px;}
+  .window{margin:7px 0 0;font-size:12px;color:var(--muted-2);letter-spacing:.02em;}
 
   .stations{list-style:none;margin:18px 0 0;padding:0;border-top:1px dashed var(--line-strong);}
   .stations li{
@@ -105,18 +104,30 @@
 
   .board-note{margin:14px 0 0;font-size:13px;color:var(--muted);line-height:1.6;}
 
-  /* ---------- stats ---------- */
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-top:0;}
-  .stat{background:var(--panel);padding:13px 12px;}
-  .stat dt{margin:0;font-size:11.5px;color:var(--muted-2);letter-spacing:.06em;}
-  .stat dd{margin:2px 0 0;font-family:var(--display);font-size:25px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;}
-  .stat dd small{font-size:13px;font-weight:500;color:var(--muted);margin-left:2px;}
+  /* ---------- 本月概況：一行就夠 ---------- */
+  .stats{
+    margin:15px 0 0;padding-top:13px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted-2);font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- 摺疊區塊 ---------- */
+  .box{border:1px solid var(--line);background:var(--panel);margin-top:14px;}
+  .box > summary{
+    list-style:none;cursor:pointer;padding:14px 16px;
+    font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.06em;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .box > summary::-webkit-details-marker{display:none;}
+  .box > summary::after{content:"＋";color:var(--accent);font-size:17px;font-weight:500;}
+  .box[open] > summary::after{content:"－";}
+  .box[open] > summary{border-bottom:1px solid var(--line);}
+  .box.primary > summary{background:var(--accent);color:#fff;}
+  .box.primary > summary::after{color:#fff;}
+  .box .form,.box .hist{border:0;background:none;}
 
   /* ---------- section heading ---------- */
-  .sec{margin-top:34px;}
-  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-  .sec-head h2{margin:0;font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.04em;}
-  .sec-head .bar{width:20px;height:2px;background:var(--accent);}
+  .sec{margin-top:30px;}
+  .sec-head{margin:0 0 10px;font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.05em;}
 
   /* ---------- tabs ---------- */
   .tabs{display:flex;border:1px solid var(--line);background:var(--panel);}
@@ -130,6 +141,7 @@
 
   /* ---------- leaderboard ---------- */
   .lb{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-top:0;}
+  .empty{border-top:0;}
   .lb li{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel);}
   .lb li:last-child{border-bottom:0;}
   .lb li.me{background:linear-gradient(90deg,var(--accent-dim),transparent 70%);box-shadow:inset 2px 0 0 var(--accent);}
@@ -145,7 +157,6 @@
   .score b.cap{font-size:16px;letter-spacing:.1em;color:var(--muted-2);}
   .lb li.dnf .rank{color:var(--muted-2);opacity:.65;}
   .lb li.dnf .name{color:var(--muted);}
-  .capline{display:block;width:fit-content;margin-top:9px;font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--muted);border:1px solid var(--line-strong);padding:2px 7px;}
   .empty{padding:26px 14px;text-align:center;color:var(--muted-2);font-size:14px;background:var(--panel);border:1px solid var(--line);border-top:0;}
 
   /* ---------- form ---------- */
@@ -169,10 +180,7 @@
   .seg button+button{border-left:0;}
   .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
 
-  .preview{
-    display:flex;align-items:center;justify-content:space-between;gap:12px;
-    background:var(--panel-2);border:1px dashed var(--line-strong);padding:12px 14px;margin:4px 0 14px;
-  }
+  .preview{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 14px;}
   .preview .lbl{font-size:12px;color:var(--muted);letter-spacing:.04em;}
   .preview .val{font-family:var(--display);font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
 
@@ -183,10 +191,7 @@
   }
   .submit:hover{background:var(--accent-hot);}
   .submit:disabled{background:var(--panel-2);color:var(--muted-2);cursor:not-allowed;}
-  .locked{
-    border:1px solid var(--line);background:var(--panel);padding:22px 16px;text-align:center;color:var(--muted);font-size:14px;
-  }
-  .locked b{display:block;font-family:var(--display);font-size:19px;font-weight:700;color:var(--text);letter-spacing:.04em;margin-bottom:4px;}
+  .locked{padding:16px;color:var(--muted);font-size:14px;}
   .hint{font-size:12px;color:var(--muted-2);margin:9px 0 0;line-height:1.6;}
 
   /* ---------- history ---------- */
@@ -241,21 +246,21 @@
   <div class="months" role="tablist" aria-label="選擇月份" id="months"></div>
 
   <section class="board" aria-labelledby="board-title">
-    <div class="board-head">
-      <div>
-        <span class="board-kind" id="board-kind">AMRAP · 12 分鐘</span>
-        <h2 class="board-title" id="board-title">九月：引擎室</h2>
-      </div>
-      <div class="window" id="board-window">9/01 – 9/30</div>
-    </div>
+    <span class="board-kind" id="board-kind"></span>
+    <h2 class="board-title" id="board-title"></h2>
+    <p class="window" id="board-window"></p>
     <ol class="stations" id="stations"></ol>
     <p class="board-note" id="board-note"></p>
+    <p class="stats" id="stats"></p>
   </section>
 
-  <dl class="stats" id="stats"></dl>
+  <details class="box primary" id="submit-box">
+    <summary id="submit-summary">交成績</summary>
+    <div id="submit-slot"></div>
+  </details>
 
   <section class="sec">
-    <div class="sec-head"><span class="bar"></span><h2>排行榜</h2></div>
+    <h2 class="sec-head">排行榜</h2>
     <div class="tabs" role="tablist" aria-label="性別分組">
       <button class="tab" role="tab" aria-selected="true" data-sex="M">男子組</button>
       <button class="tab" role="tab" aria-selected="false" data-sex="F">女子組</button>
@@ -263,27 +268,19 @@
     <ol class="lb" id="board"></ol>
   </section>
 
-  <section class="sec" id="submit-sec">
-    <div class="sec-head"><span class="bar"></span><h2>交成績</h2></div>
-    <div id="submit-slot"></div>
-  </section>
-
-  <section class="sec">
-    <div class="sec-head"><span class="bar"></span><h2>我的歷程</h2></div>
+  <details class="box" id="hist-box">
+    <summary>我的歷程</summary>
     <div class="hist">
       <div class="row">
         <div class="field"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
         <div class="field"><label for="h-phone">手機</label><input id="h-phone" placeholder="0912345678" inputmode="numeric" autocomplete="tel"></div>
       </div>
-      <button class="btn-lookup" id="h-go" type="button">查詢我的歷程</button>
+      <button class="btn-lookup" id="h-go" type="button">查詢</button>
       <ul class="hist-rows" id="hist"></ul>
     </div>
-  </section>
+  </details>
 
-  <p class="demo">
-    <b>把這頁加到手機主畫面</b>，用起來就像一個 App：Safari 按分享鈕 →「加入主畫面」，Android Chrome 按右上角選單 →「加到主畫面」。<br>
-    成績由學員自行填寫，教練會定期查看，發現明顯異常的紀錄會作廢處理。
-  </p>
+  <p class="demo">成績由學員自行填寫，教練會定期查看。把這頁加到手機主畫面，用起來就像一個 App。</p>
 
 </div>
 
@@ -395,6 +392,7 @@ const esc = s => String(s == null ? "" : s)
 /* ---------------- 繪製 ---------------- */
 
 function drawMonths(){
+  $("months").hidden = MONTHS.length < 2;          // 只有一個月就不用切換列
   $("months").innerHTML = MONTHS.map(m =>
     `<button class="month" role="tab" data-id="${m.id}" aria-selected="${m.id===monthId}">
        ${m.isOpen ? '<span class="dot"></span>' : ''}${m.label}
@@ -406,8 +404,9 @@ function drawBoard(){
   $("board-kind").textContent = m.type === "amrap"
     ? "AMRAP · " + Math.round(m.cap/60) + " 分鐘"
     : m.rounds + " ROUND FOR TIME";
-  $("board-title").innerHTML = esc(m.title) + `<span class="capline">CAP ${mmss(m.cap)}</span>`;
-  $("board-window").textContent = m.isOpen ? m.window : m.window + " · 已結束";
+  $("board-title").textContent = m.title;
+  $("board-window").textContent =
+    [m.window, "CAP " + mmss(m.cap), m.isOpen ? "" : "已結束"].filter(Boolean).join("　·　");
   $("board-note").textContent = m.note;
 
   $("stations").innerHTML = m.stations.map((s,i) => {
@@ -424,25 +423,16 @@ function drawBoard(){
 
 function drawStats(){
   const m = cur(), all = m.results;
-  if(!all.length){
-    $("stats").innerHTML = `<div class="stat" style="grid-column:1/-1"><dt>本月狀況</dt><dd>0<small>人交成績</small></dd></div>`;
-    return;
-  }
-  let a, b;
-  if(m.type==="fortime"){
+  if(!all.length){ $("stats").textContent = "還沒有人交成績"; return; }
+  const parts = [all.length + " 人參加"];
+  if(m.type === "fortime"){
     const fin = all.filter(r => !isDnf(r));
-    a = {t:"完賽率", v:Math.round(fin.length/all.length*100), u:"%"};
-    b = fin.length
-      ? {t:"平均完賽時間", v:mmss(Math.round(fin.reduce((s,r)=>s+r.sec,0)/fin.length)), u:""}
-      : {t:"平均完賽時間", v:"—", u:""};
+    parts.push("完賽率 " + Math.round(fin.length / all.length * 100) + "%");
+    if(fin.length) parts.push("平均 " + mmss(Math.round(fin.reduce((s,r) => s + r.sec, 0) / fin.length)));
   }else{
-    a = {t:"男 / 女", v:all.filter(r=>r.sex==='M').length + " / " + all.filter(r=>r.sex==='F').length, u:""};
-    b = {t:"平均輪數", v:(all.reduce((s,r)=>s+r.rounds,0)/all.length).toFixed(1), u:"輪"};
+    parts.push("平均 " + (all.reduce((s,r) => s + r.rounds, 0) / all.length).toFixed(1) + " 輪");
   }
-  $("stats").innerHTML = `
-    <div class="stat"><dt>參與人數</dt><dd>${all.length}<small>人</small></dd></div>
-    <div class="stat"><dt>${a.t}</dt><dd>${a.v}<small>${a.u}</small></dd></div>
-    <div class="stat"><dt>${b.t}</dt><dd>${b.v}<small>${b.u}</small></dd></div>`;
+  $("stats").textContent = parts.join("　·　");
 }
 
 function drawLeaderboard(){
@@ -466,12 +456,17 @@ function drawLeaderboard(){
 }
 
 function drawSubmit(){
-  const m = cur();
+  const m = cur(), box = $("submit-box"), sum = $("submit-summary");
   if(!m.isOpen){
+    box.classList.remove("primary");
+    box.open = true;
+    sum.textContent = esc(m.label) + "挑戰已截止";
     $("submit-slot").innerHTML =
-      `<div class="locked"><b>${esc(m.label)}挑戰已截止</b>可以回看排行榜，但不能再交成績。切回進行中的月份即可提交。</div>`;
+      `<div class="locked">可以回看排行榜，但不能再交成績。切回進行中的月份即可提交。</div>`;
     return;
   }
+  box.classList.add("primary");
+  sum.textContent = "交成績";
   const stOpts = m.stations.map((s,i) => `<option value="${i}">${i+1}. ${esc(s.name)}</option>`).join("");
   const progressFields = `
     <div class="field"><label for="f-rounds">完成輪數</label>
@@ -514,7 +509,7 @@ function drawSubmit(){
       <div class="field full"><label for="f-note">完賽心得（選填，會顯示在排行榜）</label>
         <textarea id="f-note" maxlength="40" placeholder="例：前兩輪衝太快，後面付出代價"></textarea></div>
       <button class="submit" type="submit" id="f-submit">送出成績</button>
-      <p class="hint">手機號碼只用來辨識身分，排行榜上只顯示姓名與末四碼，不會公開完整號碼。同一個月重複提交以最新一次為準。</p>
+      <p class="hint">榜上只顯示姓名與末四碼。同一個月重複交以最新一次為準。</p>
     </form>`;
 
   // 記住上次填的姓名與手機，省得每個月重打
@@ -608,6 +603,7 @@ async function onSubmit(e){
     sex = r.sex;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
     drawLeaderboard(); drawHistory();
+    $("submit-box").open = false;                 // 收起表單，直接看排名
     document.querySelector(".lb .me")?.scrollIntoView({behavior:"smooth", block:"center"});
   }catch(err){
     alert("送出失敗：" + err.message + "\n\n網路狀況不好時再試一次即可，不會重複記錄。");

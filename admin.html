@@ -45,8 +45,16 @@
   .card{background:var(--panel);border:1px solid var(--line);padding:18px 16px;}
   .card+.card{margin-top:16px;}
   .card > h2{margin:0 0 4px;font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.04em;}
-  .card > .sub{margin:0 0 15px;font-size:12.5px;color:var(--muted-2);line-height:1.6;}
-  .step{font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--accent);display:block;margin-bottom:3px;}
+  .sub-head{
+    margin:26px 0 10px;padding-top:16px;border-top:1px solid var(--line);
+    font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.06em;
+  }
+  .card > .hint,.hint{margin:0 0 10px;font-size:12.5px;color:var(--muted-2);line-height:1.6;}
+  .lbl{font-size:11.5px;color:var(--muted-2);letter-spacing:.08em;margin:0;}
+  .months-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+  .field.grow{flex:1 1 100%;margin:0;}
+  .btn + .btn,.btn.wide{margin-top:10px;}
+  .btn.publish{margin-top:26px;}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:12px;}
@@ -187,17 +195,14 @@
       <div class="cols">
         <div>
           <section class="card">
-            <h2>已建立的月份</h2>
-            <p class="sub">點一個月份可以載入它的課表來修改，或直接在下面開新的一個月。</p>
-            <div class="chips" id="plan-list"></div>
-          </section>
+            <div class="months-line">
+              <span class="lbl">已建立</span>
+              <div class="chips" id="plan-list"></div>
+            </div>
 
-          <section class="card">
-            <span class="step">步驟 1</span>
-            <h2>這個月的基本設定</h2>
             <div class="row">
               <div class="field"><label for="p-month">月份</label><input id="p-month" type="month" value="2026-10"></div>
-              <div class="field"><label for="p-title">月份標題</label><input id="p-title" value="十月：秋操" placeholder="十月：秋操"></div>
+              <div class="field"><label for="p-title">標題</label><input id="p-title" value="十月：秋操" placeholder="十月：秋操"></div>
             </div>
             <div class="row">
               <div class="field"><label for="p-open">開放日</label><input id="p-open" type="date" value="2026-10-01"></div>
@@ -206,28 +211,18 @@
             <div class="row">
               <div class="field sm"><label for="p-cap-m">CAP 分</label><input id="p-cap-m" type="number" min="1" value="20"></div>
               <div class="field sm"><label for="p-cap-s">秒</label><input id="p-cap-s" type="number" min="0" max="59" value="0"></div>
-              <div class="field" style="flex:1 1 100%;max-width:0;padding:0;margin:0"></div>
+              <div class="field grow"></div>
             </div>
-          </section>
 
-          <section class="card">
-            <span class="step">步驟 2</span>
-            <h2>把課表貼進來</h2>
-            <p class="sub">照你平常寫白板的方式貼就好，第一行寫賽制，後面每行一站。按解析後會自動拆成下面的欄位。</p>
-            <textarea id="p-raw" rows="6" spellcheck="false">4 Round For Time
+            <h3 class="sub-head">課表</h3>
+            <p class="hint">照平常寫白板的方式貼。第一行寫賽制，後面每行一站。</p>
+            <textarea id="p-raw" rows="5" spellcheck="false">4 Round For Time
 DB Snatch 16 (M15kg/F10kg)
 Row Erg 300m
 Burpee to plank 12</textarea>
-            <div class="btn-row" style="margin-top:12px">
-              <button class="btn" id="btn-parse">解析課表</button>
-              <button class="btn ghost" id="btn-sample">換一份範例試試</button>
-            </div>
-          </section>
+            <button class="btn" id="btn-parse">解析課表</button>
 
-          <section class="card">
-            <span class="step">步驟 3</span>
-            <h2>確認拆出來的內容</h2>
-            <p class="sub">解析錯的地方直接改這裡。數量單位選「下」「公尺」或「cal」，重量留空代表徒手。</p>
+            <h3 class="sub-head">確認內容</h3>
             <div id="parse-msg"></div>
             <div class="row">
               <div class="field"><label for="p-type">賽制</label>
@@ -246,31 +241,20 @@ Burpee to plank 12</textarea>
                 <tbody id="st-body"></tbody>
               </table>
             </div>
-            <div class="btn-row" style="margin-top:12px">
-              <button class="btn ghost" id="btn-add">＋ 新增一站</button>
-            </div>
-          </section>
+            <button class="btn ghost" id="btn-add">＋ 新增一站</button>
 
-          <section class="card">
-            <span class="step">步驟 4</span>
-            <h2>發布</h2>
-            <p class="sub">發布後學生端立刻看得到。同一個月再發布一次就是覆蓋，舊成績不受影響。</p>
-            <button class="btn wide" id="btn-publish">發布這個月的課表</button>
+            <button class="btn wide publish" id="btn-publish">發布這個月的課表</button>
           </section>
         </div>
 
         <div class="preview-wrap">
-          <p style="font-size:12px;color:var(--muted-2);letter-spacing:.06em;margin:0 0 9px;">學生端會看到</p>
+          <p class="lbl">學生端會看到</p>
           <div class="phone">
-            <span class="pv-kind" id="pv-kind">4 ROUND FOR TIME</span>
-            <h3 class="pv-title" id="pv-title">十月：秋操</h3>
-            <span class="pv-cap" id="pv-cap">CAP 20:00</span>
+            <span class="pv-kind" id="pv-kind"></span>
+            <h3 class="pv-title" id="pv-title"></h3>
+            <span class="pv-cap" id="pv-cap"></span>
             <ol class="pv-st" id="pv-st"></ol>
             <p class="pv-window" id="pv-window"></p>
-          </div>
-          <div class="note-box">
-            <b>資料存在哪</b><br>
-            發布後會寫進 Google 試算表的 <code>課表</code> 分頁，一個月一列。你也可以直接開試算表改，兩邊同一份資料。
           </div>
         </div>
       </div>
@@ -280,7 +264,7 @@ Burpee to plank 12</textarea>
     <div id="view-results" hidden>
       <section class="card" style="margin-top:22px">
         <h2 id="r-title">成績管理</h2>
-        <p class="sub">改時間直接改欄位，離開欄位就存回試算表。作廢的成績不會出現在排行榜，但紀錄保留。</p>
+        <p class="hint">改時間直接改欄位，離開欄位就存。作廢的紀錄不上榜但保留。</p>
         <div class="toolbar">
           <select id="r-month" style="max-width:190px"></select>
           <input id="r-search" placeholder="搜尋姓名或手機">
@@ -294,10 +278,6 @@ Burpee to plank 12</textarea>
             </tr></thead>
             <tbody id="r-body"></tbody>
           </table>
-        </div>
-        <div class="note-box">
-          <b>看到明顯灌水的成績怎麼辦</b><br>
-          按「作廢」就會從排行榜消失，學生那邊看不到被作廢的原因，也不會收到通知。要完全刪掉就到試算表刪那一列。
         </div>
       </section>
     </div>
@@ -445,25 +425,6 @@ function toUnit(u){
    課表編輯
    ========================================================================== */
 
-const SAMPLES = [
-`4 Round For Time
-DB Snatch 16 (M15kg/F10kg)
-Row Erg 300m
-Burpee to plank 12`,
-`5 Rounds For Time
-20 Wall Ball (M9kg/F6kg)
-15 Box Jump (60cm)
-12 Ring Row`,
-`3 Round For Time
-Assault Bike 20cal
-KB Swing 21 (M24kg/F16kg)
-Toes to Bar 12`,
-`AMRAP 12 min
-DB Snatch 16 (M15kg/F10kg)
-Row Erg 300m
-Burpee to plank 12`
-];
-let sampleIdx = 0;
 
 function doParse(){
   const p = parseWorkout($("p-raw").value);
@@ -573,11 +534,6 @@ $("plan-list").addEventListener("click", e => {
 /* ---------------- 編輯事件 ---------------- */
 
 $("btn-parse").addEventListener("click", doParse);
-$("btn-sample").addEventListener("click", () => {
-  sampleIdx = (sampleIdx + 1) % SAMPLES.length;
-  $("p-raw").value = SAMPLES[sampleIdx];
-  doParse();
-});
 $("btn-add").addEventListener("click", () => {
   if(!plan) plan = {type:"fortime", rounds:1, cap:null, stations:[], unknown:[]};
   plan.stations.push({name:"", qty:0, unit:"下", M:"", F:""});
