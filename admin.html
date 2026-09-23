@@ -58,6 +58,23 @@
   .field.grow{flex:1 1 100%;margin:0;}
   .btn + .btn,.btn.wide{margin-top:10px;}
   .btn.publish{margin-top:26px;}
+  .btn.danger{border:1px solid #B3261E;color:#B3261E;background:transparent;}
+  .btn.danger:hover{background:rgba(179,38,30,.07);}
+  .btn.danger.solid{background:#B3261E;border-color:#B3261E;color:#fff;}
+  .btn.danger.solid:hover{background:#8F1E18;}
+  .danger-zone{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);}
+  .danger-zone .warn{
+    margin:0 0 12px;padding:11px 13px;font-size:13px;line-height:1.7;
+    border-left:2px solid #B3261E;background:rgba(179,38,30,.06);color:var(--muted);
+  }
+  .danger-zone .warn b{color:var(--text);}
+
+  /* 學生端預覽裡的男女重量，跟學生端同一套顏色 */
+  .pv-load{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px;}
+  .pv-load .tag{display:inline-flex;align-items:baseline;gap:4px;padding:1px 7px;font-size:12px;font-weight:700;}
+  .pv-load .tag b{font-family:var(--display);font-size:13px;}
+  .pv-load .m{color:#1B6AA8;background:rgba(27,106,168,.11);}
+  .pv-load .f{color:#B83A72;background:rgba(184,58,114,.11);}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:12px;}
@@ -101,7 +118,6 @@
   .pv-no{font-family:var(--display);font-size:12px;font-weight:600;color:var(--muted-2);width:15px;flex:0 0 15px;}
   .pv-qty{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;min-width:52px;flex:0 0 auto;font-variant-numeric:tabular-nums;}
   .pv-name{flex:1;font-size:14.5px;}
-  .pv-load{font-size:12px;color:var(--muted);}
   .pv-window{font-size:11.5px;color:var(--muted-2);margin-top:12px;}
 
   /* 成績管理 */
@@ -247,6 +263,17 @@ Burpee to plank 12</textarea>
             <button class="btn ghost" id="btn-add">＋ 新增一站</button>
 
             <button class="btn wide publish" id="btn-publish">發布這個月的課表</button>
+
+            <div class="danger-zone" id="danger-zone" hidden>
+              <button class="btn danger" id="btn-delete">刪除這個月的課表</button>
+              <div id="del-confirm" hidden>
+                <p class="warn" id="del-warn"></p>
+                <div class="btn-row">
+                  <button class="btn danger solid" id="del-yes">確定刪除</button>
+                  <button class="btn ghost" id="del-no">取消</button>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
 
@@ -468,9 +495,11 @@ function drawPreview(){
     ? "AMRAP · " + Math.round(cap/60) + " 分鐘"
     : plan.rounds + " ROUND FOR TIME";
   $("pv-title").textContent = $("p-title").value || "（未命名）";
-  $("pv-cap").textContent = "CAP " + mmss(cap);
+  $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
   $("pv-st").innerHTML = plan.stations.map((s,i) => {
-    const load = (s.M || s.F) ? `<div class="pv-load">M ${esc(s.M)||"—"} / F ${esc(s.F)||"—"}</div>` : "";
+    const load = (s.M || s.F) ? `<div class="pv-load">
+      <span class="tag m"><b>男</b>${esc(s.M)||"—"}</span>
+      <span class="tag f"><b>女</b>${esc(s.F)||"—"}</span></div>` : "";
     return `<li><span class="pv-no">${i+1}</span>
       <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span>
       <span class="pv-name">${esc(s.name)}${load}</span></li>`;
@@ -497,6 +526,7 @@ async function loadPlans(){
 }
 
 function drawPlanList(){
+  refreshDanger();
   if(!PLANS.length){
     $("plan-list").innerHTML = `<span class="none">還沒有任何月份。在下面貼第一份課表吧。</span>`;
     return;
@@ -532,6 +562,57 @@ function loadPlanInto(id){
 $("plan-list").addEventListener("click", e => {
   const b = e.target.closest("[data-load]"); if(!b) return;
   loadPlanInto(b.dataset.load);
+});
+
+/* ---------------- 刪除月份 ----------------
+   只有「這個月份已經存在」時才出現刪除鈕，而且要再按一次確認。
+------------------------------------------------ */
+
+function refreshDanger(){
+  const hit = PLANS.find(p => p.id === $("p-month").value);
+  $("danger-zone").hidden = !hit;
+  $("del-confirm").hidden = true;
+  $("btn-delete").hidden = false;
+}
+
+$("btn-delete").addEventListener("click", () => {
+  const id = $("p-month").value;
+  const p  = PLANS.find(x => x.id === id);
+  if(!p) return;
+  const n = (p.results || []).length;
+  $("del-warn").innerHTML =
+    `確定要刪除 <b>${esc(p.id)}　${esc(p.title)}</b> 的課表嗎？<br>` +
+    (n ? `這個月已經有 <b>${n} 筆成績</b>。刪掉課表之後那些成績不會跟著刪除，` +
+         `但學生端的排行榜不會再顯示這個月。<br>` : "") +
+    `這個動作沒辦法復原。`;
+  $("btn-delete").hidden = true;
+  $("del-confirm").hidden = false;
+});
+
+$("del-no").addEventListener("click", () => {
+  $("del-confirm").hidden = true;
+  $("btn-delete").hidden = false;
+});
+
+$("del-yes").addEventListener("click", async () => {
+  const id = $("p-month").value;
+  const btn = $("del-yes");
+  btn.disabled = true; btn.textContent = "刪除中⋯";
+  try{
+    if(!LIVE){ banner("示範模式：正式版這裡會把課表那一列刪掉。"); }
+    else{
+      const res = await api("deletePlan", {monthId:id});
+      if(!res.ok) throw new Error(res.error || "刪除失敗");
+      banner("<b>已刪除 " + esc(id) + "</b> 的課表。");
+      await loadPlans();
+    }
+    $("del-confirm").hidden = true;
+    $("btn-delete").hidden = false;
+  }catch(err){
+    banner("<b>刪除失敗</b> —— " + esc(err.message), true);
+  }finally{
+    btn.disabled = false; btn.textContent = "確定刪除";
+  }
 });
 
 /* ---------------- 編輯事件 ---------------- */

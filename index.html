@@ -83,7 +83,16 @@
     font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:.14em;
     color:var(--accent-hot);text-transform:uppercase;display:block;margin-bottom:4px;
   }
-  .window{margin:7px 0 0;font-size:12px;color:var(--muted-2);letter-spacing:.02em;}
+  .window{margin:9px 0 0;font-size:12px;color:var(--muted-2);letter-spacing:.02em;}
+  .timecap{
+    display:inline-flex;align-items:baseline;gap:9px;margin-top:12px;
+    border:1.5px solid var(--accent);padding:5px 12px;
+  }
+  .timecap .k{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--accent-hot);}
+  .timecap .v{
+    font-family:var(--display);font-size:23px;font-weight:700;line-height:1;
+    color:var(--text);font-variant-numeric:tabular-nums;
+  }
 
   .stations{list-style:none;margin:18px 0 0;padding:0;border-top:1px dashed var(--line-strong);}
   .stations li{
@@ -99,8 +108,16 @@
     min-width:58px;flex:0 0 auto;font-variant-numeric:tabular-nums;
   }
   .st-name{flex:1;font-size:15px;}
-  .st-load{font-size:12.5px;color:var(--muted);}
-  .st-load .on{color:var(--accent-hot);font-weight:700;}
+  .st-load{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
+  .st-load .tag{
+    display:inline-flex;align-items:baseline;gap:5px;
+    padding:2px 8px;font-size:13px;font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
+  .st-load .tag b{font-family:var(--display);font-size:14px;letter-spacing:.04em;font-weight:700;}
+  .st-load .m{color:#1B6AA8;background:rgba(27,106,168,.11);}   /* 男 */
+  .st-load .f{color:#B83A72;background:rgba(184,58,114,.11);}   /* 女 */
+  .st-load .off{opacity:.34;}                                    /* 不是你那組就淡掉 */
 
   .board-note{margin:14px 0 0;font-size:13px;color:var(--muted);line-height:1.6;}
 
@@ -233,6 +250,7 @@
   <section class="board" aria-labelledby="board-title">
     <span class="board-kind" id="board-kind"></span>
     <h2 class="board-title" id="board-title"></h2>
+    <div class="timecap" id="board-cap"></div>
     <p class="window" id="board-window"></p>
     <ol class="stations" id="stations"></ol>
     <p class="board-note" id="board-note"></p>
@@ -396,8 +414,8 @@ function drawBoard(){
 
   $("stations").innerHTML = m.stations.map((s,i) => {
     const load = (s.M || s.F) ? `<div class="st-load">
-        <span class="${formSex==='M'?'on':''}">M ${esc(s.M)||"—"}</span> /
-        <span class="${formSex==='F'?'on':''}">F ${esc(s.F)||"—"}</span></div>` : "";
+        <span class="tag m ${formSex==='M'?'':'off'}"><b>男</b>${esc(s.M)||"—"}</span>
+        <span class="tag f ${formSex==='F'?'':'off'}"><b>女</b>${esc(s.F)||"—"}</span></div>` : "";
     return `<li>
       <span class="st-no">${i+1}</span>
       <span class="st-qty">${s.qty}${unitOf(s.unit)}</span>
