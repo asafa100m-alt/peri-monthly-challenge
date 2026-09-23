@@ -408,8 +408,10 @@ function drawBoard(){
     ? "AMRAP · " + Math.round(m.cap/60) + " 分鐘"
     : m.rounds + " ROUND FOR TIME";
   $("board-title").textContent = m.title;
+  $("board-cap").innerHTML =
+    `<span class="k">${m.type === "amrap" ? "限時" : "時間上限"}</span><span class="v">${mmss(m.cap)}</span>`;
   $("board-window").textContent =
-    [m.window, "CAP " + mmss(m.cap), m.isOpen ? "" : "已結束"].filter(Boolean).join("　·　");
+    [m.window + " 開放提交", m.isOpen ? "" : "已截止"].filter(Boolean).join("　·　");
   $("board-note").textContent = m.note;
 
   $("stations").innerHTML = m.stations.map((s,i) => {
