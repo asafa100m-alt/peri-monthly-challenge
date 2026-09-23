@@ -137,6 +137,7 @@
     margin:15px 0 0;padding-top:13px;border-top:1px solid var(--line);
     font-size:12.5px;color:var(--muted-2);font-variant-numeric:tabular-nums;
   }
+  .stats b{font-family:var(--display);font-size:17px;font-weight:700;color:var(--text);margin:0 1px;}
 
   /* ---------- section heading ---------- */
   .sec{margin-top:30px;}
@@ -150,6 +151,8 @@
     border-right:1px solid var(--line);transition:background .15s,color .15s;
   }
   .tab:last-child{border-right:0;}
+  .tab em{font-style:normal;margin-left:7px;font-size:13px;color:var(--muted-2);font-variant-numeric:tabular-nums;}
+  .tab[aria-selected="true"] em{color:var(--accent-hot);}
   .tab[aria-selected="true"]{background:var(--accent-dim);color:var(--accent-hot);box-shadow:inset 0 -2px 0 var(--accent);}
 
   /* ---------- leaderboard ---------- */
@@ -461,8 +464,8 @@ function drawBoard(){
 
 function drawStats(){
   const m = cur(), all = m.results;
-  if(!all.length){ $("stats").textContent = "還沒有人交成績"; return; }
-  const parts = [all.length + " 人參加"];
+  if(!all.length){ $("stats").textContent = "還沒有人挑戰，你可以是第一個。"; return; }
+  const parts = ["挑戰人數 <b>" + all.length + "</b> 人"];
   if(m.type === "fortime"){
     const fin = all.filter(r => !isDnf(r));
     parts.push("完賽率 " + Math.round(fin.length / all.length * 100) + "%");
@@ -470,7 +473,16 @@ function drawStats(){
   }else{
     parts.push("平均 " + (all.reduce((s,r) => s + r.rounds, 0) / all.length).toFixed(1) + " 輪");
   }
-  $("stats").textContent = parts.join("　·　");
+  $("stats").innerHTML = parts.join("　·　");
+}
+
+// 兩個分頁各標自己那組的人數，切換前就知道有多少人
+function drawTabs(){
+  const m = cur();
+  document.querySelectorAll(".tab").forEach(t => {
+    const n = m.results.filter(r => r.sex === t.dataset.sex).length;
+    t.innerHTML = (t.dataset.sex === "M" ? "男子組" : "女子組") + `<em>${n}</em>`;
+  });
 }
 
 function drawLeaderboard(){
@@ -708,7 +720,7 @@ const demoPid = (n,p) => "demo-" + n.replace(/\s+/g,"") + "-" + p;
 
 function redraw(){
   document.querySelector(".wrap").classList.remove("is-loading");
-  drawMonths(); drawBoard(); drawStats(); drawLeaderboard(); drawSubmit(); drawHistory();
+  drawMonths(); drawBoard(); drawStats(); drawTabs(); drawLeaderboard(); drawSubmit(); drawHistory();
 }
 
 async function reload(){
