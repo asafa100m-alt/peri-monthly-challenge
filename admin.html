@@ -63,11 +63,13 @@
   .btn.danger.solid{background:#B3261E;border-color:#B3261E;color:#fff;}
   .btn.danger.solid:hover{background:#8F1E18;}
   .danger-zone{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);}
+  .warn,
   .danger-zone .warn{
     margin:0 0 12px;padding:11px 13px;font-size:13px;line-height:1.7;
     border-left:2px solid #B3261E;background:rgba(179,38,30,.06);color:var(--muted);
   }
-  .danger-zone .warn b{color:var(--text);}
+  .warn b,.danger-zone .warn b{color:var(--text);}
+  #pub-confirm{margin-top:12px;}
 
   /* 學生端預覽裡的男女重量，跟學生端同一套顏色 */
   .pv-load{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px;}
@@ -117,8 +119,8 @@
   .pv-st{list-style:none;margin:14px 0 0;padding:0;border-top:1px dashed var(--line-strong);}
   .pv-st li{display:flex;align-items:baseline;gap:11px;padding:9px 0;border-bottom:1px dashed var(--line);}
   .pv-no{font-family:var(--display);font-size:12px;font-weight:600;color:var(--muted-2);width:15px;flex:0 0 15px;}
-  .pv-qty{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;min-width:52px;flex:0 0 auto;font-variant-numeric:tabular-nums;}
-  .pv-name{flex:1;font-size:14.5px;}
+  .pv-name{flex:1;min-width:0;font-size:14.5px;}
+  .pv-qty{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;flex:0 0 auto;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
   .pv-note{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6;}
   .pv-window{font-size:11.5px;color:var(--muted-2);margin-top:12px;}
 
@@ -270,6 +272,14 @@ Burpee to plank 12</textarea>
               placeholder="例：划船機不足一輪不補做。"></textarea>
 
             <button class="btn wide publish" id="btn-publish">發布這個月的課表</button>
+            <div id="pub-confirm" hidden>
+              <p class="warn" id="pub-warn"></p>
+              <div class="btn-row">
+                <button class="btn ghost" id="pub-load">先載入現有的</button>
+                <button class="btn danger solid" id="pub-yes">還是要覆蓋</button>
+                <button class="btn ghost" id="pub-no">取消</button>
+              </div>
+            </div>
 
             <div class="danger-zone" id="danger-zone" hidden>
               <button class="btn danger" id="btn-delete">刪除這個月的課表</button>
@@ -341,6 +351,7 @@ let PW = "";            // 登入後保留在記憶體，關掉分頁就消失
 let PLANS = [];         // 後台讀回來的所有月份
 let RESULTS = [];       // 目前月份的成績
 let plan = null;        // 正在編輯的課表
+let loadedId = null;    // 這次有沒有先把某個月份載入進來改
 
 // Apps Script 的轉址偶爾會吐出 HTML 錯誤頁（實測約十次一次），所以重試幾遍再放棄。
 // 交成績是「同一人同月覆蓋」的設計，重試不會變成兩筆。
@@ -509,8 +520,8 @@ function drawPreview(){
       <span class="tag m"><b>男</b>${esc(s.M)||"—"}</span>
       <span class="tag f"><b>女</b>${esc(s.F)||"—"}</span></div>` : "";
     return `<li><span class="pv-no">${i+1}</span>
-      <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span>
-      <span class="pv-name">${esc(s.name)}${load}</span></li>`;
+      <span class="pv-name">${esc(s.name)}${load}</span>
+      <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span></li>`;
   }).join("");
   const note = $("p-note").value.trim();
   $("pv-note").textContent = note;
@@ -566,6 +577,7 @@ function loadPlanInto(id){
         return s.name + " " + s.qty + (s.unit === "下" ? "" : s.unit) + load;
       }).join("\n");
   plan = {type:p.type, rounds:p.rounds, cap:p.cap, stations:p.stations.map(s => Object.assign({}, s)), unknown:[]};
+  loadedId = p.id;                      // 記住這次是從哪個月份載入的
   $("parse-msg").innerHTML = `<div class="parsed">已載入 <b>${esc(p.id)}</b> 的課表，改完按下面發布就會覆蓋。</div>`;
   render(); drawPlanList();
   window.scrollTo({top:0, behavior:"smooth"});
@@ -659,12 +671,11 @@ $("p-month").addEventListener("input", drawPlanList);
 
 /* ---------------- 發布 ---------------- */
 
-$("btn-publish").addEventListener("click", async () => {
-  if(!plan || !plan.stations.length) return alert("還沒有課表內容，先貼上並解析。");
-  if(plan.stations.some(s => !s.name.trim() || !s.qty)) return alert("有站別的動作名稱或數量還沒填完整。");
-  if(!$("p-month").value) return alert("請選月份。");
-
-  const payload = {
+function buildPayload(){
+  if(!plan || !plan.stations.length){ alert("還沒有課表內容，先貼上並解析。"); return null; }
+  if(plan.stations.some(s => !s.name.trim() || !s.qty)){ alert("有站別的動作名稱或數量還沒填完整。"); return null; }
+  if(!$("p-month").value){ alert("請選月份。"); return null; }
+  return {
     id: $("p-month").value,
     title: $("p-title").value.trim(),
     type: $("p-type").value,
@@ -675,7 +686,9 @@ $("btn-publish").addEventListener("click", async () => {
     note: $("p-note").value.trim(),
     stations: plan.stations
   };
+}
 
+async function doPublish(payload){
   if(!LIVE){
     alert("示範模式：正式版這裡會寫進試算表的「課表」分頁。\n\n這個月會存成：\n\n"
       + payload.id + "  " + payload.title + "\n"
@@ -684,12 +697,12 @@ $("btn-publish").addEventListener("click", async () => {
       + payload.stations.map(s => `${s.name}｜${s.qty}${s.unit}｜M${s.M||"-"}｜F${s.F||"-"}`).join("\n"));
     return;
   }
-
   const btn = $("btn-publish");
   btn.disabled = true; btn.textContent = "發布中⋯";
   try{
     const res = await api("savePlan", {plan: payload});
     if(!res.ok) throw new Error(res.error || "發布失敗");
+    loadedId = payload.id;                       // 發布完就算「手上這份就是它」
     banner("<b>已發布 " + esc(payload.id) + "</b> —— 學生端重新整理就看得到了。");
     await loadPlans();
   }catch(err){
@@ -697,6 +710,47 @@ $("btn-publish").addEventListener("click", async () => {
   }finally{
     btn.disabled = false; btn.textContent = "發布這個月的課表";
   }
+}
+
+/* 保險：這個月份已經存在，但你這次沒有先把它載入進來，
+   代表畫面上很可能是預設值或別的月份的內容，發布會整列蓋掉。先問一次。 */
+$("btn-publish").addEventListener("click", () => {
+  const payload = buildPayload();
+  if(!payload) return;
+
+  const exist = PLANS.find(p => p.id === payload.id);
+  if(exist && loadedId !== payload.id){
+    const n = (exist.results || []).length;
+    $("pub-warn").innerHTML =
+      `<b>${esc(exist.id)}　${esc(exist.title)}</b> 已經存在了` +
+      `（${exist.type === "amrap" ? "AMRAP" : exist.rounds + " 輪 For Time"}、` +
+      `CAP ${mmss(exist.cap)}、${exist.stations.length} 站` + (n ? `、${n} 筆成績` : "") + `）。<br>` +
+      `你這次沒有先把它載入，現在發布會用<b>畫面上的內容整列覆蓋</b>它。`;
+    $("btn-publish").hidden = true;
+    $("pub-confirm").hidden = false;
+    $("pub-confirm").scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+  doPublish(payload);
+});
+
+$("pub-no").addEventListener("click", () => {
+  $("pub-confirm").hidden = true;
+  $("btn-publish").hidden = false;
+});
+
+$("pub-load").addEventListener("click", () => {
+  const id = $("p-month").value;
+  $("pub-confirm").hidden = true;
+  $("btn-publish").hidden = false;
+  loadPlanInto(id);
+});
+
+$("pub-yes").addEventListener("click", async () => {
+  const payload = buildPayload();
+  $("pub-confirm").hidden = true;
+  $("btn-publish").hidden = false;
+  if(payload) await doPublish(payload);
 });
 
 /* ==========================================================================

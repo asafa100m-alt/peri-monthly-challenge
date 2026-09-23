@@ -114,11 +114,11 @@
     font-family:var(--display);font-size:13px;font-weight:600;color:var(--muted-2);
     width:18px;flex:0 0 18px;font-variant-numeric:tabular-nums;
   }
+  .st-name{flex:1;min-width:0;font-size:15px;}
   .st-qty{
     font-family:var(--display);font-size:22px;font-weight:700;line-height:1;
-    min-width:58px;flex:0 0 auto;font-variant-numeric:tabular-nums;
+    flex:0 0 auto;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;
   }
-  .st-name{flex:1;font-size:15px;}
   .st-load{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
   .st-load .tag{
     display:inline-flex;align-items:baseline;gap:5px;
@@ -457,8 +457,8 @@ function drawBoard(){
         <span class="tag f ${formSex==='F'?'':'off'}"><b>女</b>${esc(s.F)||"—"}</span></div>` : "";
     return `<li>
       <span class="st-no">${i+1}</span>
-      <span class="st-qty">${s.qty}${unitOf(s.unit)}</span>
       <span class="st-name">${esc(s.name)}${load}</span>
+      <span class="st-qty">${s.qty}${unitOf(s.unit)}</span>
     </li>`;
   }).join("");
 }
