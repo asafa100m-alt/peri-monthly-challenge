@@ -1,5 +1,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<script>
+  /* ↓ 這是 Apps Script 的網址，換後台時改這一行就好 ↓ */
+  window.API_URL = "https://script.google.com/macros/s/AKfycbwzomM0U0En-LccK3eJXH0gHZFVN36_IvjRFMUi4NE3_C9hm_1Zfns1WfoLwJD82Di2/exec";
+  /* 不等網頁其他東西載完，先把資料要求丟出去，省下約 200 毫秒 */
+  try {
+    window.__boot = fetch(window.API_URL + "?action=bootstrap", { cache: "no-store" })
+      .then(function (r) { return r.text(); });
+  } catch (e) {}
+</script>
 <title>沛力每月小挑戰</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -294,7 +305,7 @@
    沒填的話頁面會用示範資料跑，方便先看畫面。
    ========================================================================== */
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwzomM0U0En-LccK3eJXH0gHZFVN36_IvjRFMUi4NE3_C9hm_1Zfns1WfoLwJD82Di2/exec";
+const API_URL = window.API_URL || "PASTE_APPS_SCRIPT_URL_HERE";
 
 const LIVE = /^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL);
 const $ = id => document.getElementById(id);
@@ -342,9 +353,31 @@ async function api(action, payload){
   });
 }
 async function fetchBootstrap(){
-  const j = await fetchJSON(API_URL + "?action=bootstrap");
+  let j = null;
+  if(window.__boot){                       // 用頁面最上面就先發出去的那一趟
+    const p = window.__boot; window.__boot = null;
+    try{ j = JSON.parse(await p); }catch(err){ j = null; }
+  }
+  if(!j) j = await fetchJSON(API_URL + "?action=bootstrap");
   if(!j.ok) throw new Error(j.error || "讀取失敗");
   return j.data;
+}
+
+/* 上次看到的內容存在這台手機裡，下次開啟先拿它畫，不用乾等 Apps Script 回應。
+   畫完之後照樣在背景重新抓一次，有變動就蓋掉。 */
+const SNAP_KEY = "peri.snapshot.v1";
+const SNAP_MAX_AGE = 7 * 24 * 3600 * 1000;     // 太久沒開就別用舊的了
+
+function saveSnapshot(data){
+  try{ localStorage.setItem(SNAP_KEY, JSON.stringify({t:Date.now(), data})); }catch(e){}
+}
+function loadSnapshot(){
+  try{
+    const o = JSON.parse(localStorage.getItem(SNAP_KEY) || "null");
+    if(!o || !o.data || !Array.isArray(o.data.months)) return null;
+    if(Date.now() - o.t > SNAP_MAX_AGE) return null;
+    return o.data;
+  }catch(e){ return null; }
 }
 
 function banner(html, bad){
@@ -680,6 +713,7 @@ function redraw(){
 
 async function reload(){
   const data = await fetchBootstrap();
+  saveSnapshot(data);
   MONTHS = data.months || [];
   if(!MONTHS.some(m => m.id === monthId)){
     monthId = (MONTHS.find(m => m.isOpen) || MONTHS[0] || {}).id;
@@ -697,13 +731,23 @@ async function boot(){
     redraw();
     return;
   }
+
+  const snap = loadSnapshot();
+  if(snap && snap.months && snap.months.length){     // 先把上次的內容畫出來
+    MONTHS = snap.months;
+    monthId = (MONTHS.find(m => m.isOpen) || MONTHS[0] || {}).id;
+    $("loading").hidden = true;
+    redraw();
+  }
+
   try{
-    await reload();
+    await reload();                                  // 再跟後台對一次，有變就蓋掉
     $("loading").hidden = true;
   }catch(err){
     $("loading").hidden = true;
-    banner("<b>連不上後台</b> —— " + esc(err.message) +
-           "。請確認 Apps Script 已部署為網頁應用程式、存取權限設為「任何人」，網址結尾是 /exec。", true);
+    if(snap) banner("<b>目前顯示的是上次的內容</b> —— 連不上後台（" + esc(err.message) + "），排行榜可能不是最新的。", true);
+    else banner("<b>連不上後台</b> —— " + esc(err.message) +
+                "。請確認 Apps Script 已部署為網頁應用程式、存取權限設為「任何人」，網址結尾是 /exec。", true);
   }
 }
 
