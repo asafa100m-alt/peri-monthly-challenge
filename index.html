@@ -449,6 +449,7 @@ function drawBoard(){
   $("board-window").textContent =
     [m.window + " 開放提交", m.isOpen ? "" : "已截止"].filter(Boolean).join("　·　");
   $("board-note").textContent = m.note;
+  $("board-note").hidden = !m.note;          // 沒寫說明就不要留空段落
 
   $("stations").innerHTML = m.stations.map((s,i) => {
     const load = (s.M || s.F) ? `<div class="st-load">

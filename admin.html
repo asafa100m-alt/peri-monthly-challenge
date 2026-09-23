@@ -84,6 +84,7 @@
   input::placeholder,textarea::placeholder{color:#A9A29B;}
   input:focus,select:focus,textarea:focus{border-color:var(--accent-hot);outline:none;}
   textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;line-height:1.7;}
+  textarea.plain{font-family:var(--body);font-size:14.5px;line-height:1.6;}
   input[type="date"],input[type="month"]{color-scheme:light;}
 
   .btn{padding:11px 18px;background:var(--accent);border:0;cursor:pointer;color:#fff;font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.08em;}
@@ -118,6 +119,7 @@
   .pv-no{font-family:var(--display);font-size:12px;font-weight:600;color:var(--muted-2);width:15px;flex:0 0 15px;}
   .pv-qty{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;min-width:52px;flex:0 0 auto;font-variant-numeric:tabular-nums;}
   .pv-name{flex:1;font-size:14.5px;}
+  .pv-note{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6;}
   .pv-window{font-size:11.5px;color:var(--muted-2);margin-top:12px;}
 
   /* 成績管理 */
@@ -262,6 +264,11 @@ Burpee to plank 12</textarea>
             </div>
             <button class="btn ghost" id="btn-add">＋ 新增一站</button>
 
+            <h3 class="sub-head">給學生的說明</h3>
+            <p class="hint">選填，會顯示在學生端課表下方。留空就不顯示。</p>
+            <textarea id="p-note" rows="2" class="plain"
+              placeholder="例：划船機不足一輪不補做。"></textarea>
+
             <button class="btn wide publish" id="btn-publish">發布這個月的課表</button>
 
             <div class="danger-zone" id="danger-zone" hidden>
@@ -284,6 +291,7 @@ Burpee to plank 12</textarea>
             <h3 class="pv-title" id="pv-title"></h3>
             <span class="pv-cap" id="pv-cap"></span>
             <ol class="pv-st" id="pv-st"></ol>
+            <p class="pv-note" id="pv-note" hidden></p>
             <p class="pv-window" id="pv-window"></p>
           </div>
         </div>
@@ -504,6 +512,9 @@ function drawPreview(){
       <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span>
       <span class="pv-name">${esc(s.name)}${load}</span></li>`;
   }).join("");
+  const note = $("p-note").value.trim();
+  $("pv-note").textContent = note;
+  $("pv-note").hidden = !note;
   const o = $("p-open").value, c = $("p-close").value;
   $("pv-window").textContent = o && c ? fmt(o) + " – " + fmt(c) + " 開放提交" : "";
 }
@@ -548,6 +559,7 @@ function loadPlanInto(id){
   $("p-cap-s").value = p.cap % 60;
   $("p-type").value  = p.type;
   $("p-rounds").value = p.rounds;
+  $("p-note").value  = p.note || "";
   $("p-raw").value = (p.type === "amrap" ? "AMRAP " + Math.round(p.cap/60) + " min" : p.rounds + " Round For Time")
     + "\n" + p.stations.map(s => {
         const load = (s.M || s.F) ? ` (M${s.M||"-"}/F${s.F||"-"})` : "";
@@ -637,7 +649,7 @@ $("st-body").addEventListener("click", e => {
   const b = e.target.closest("[data-del]"); if(!b) return;
   plan.stations.splice(+b.dataset.del, 1); render();
 });
-["p-title","p-open","p-close","p-cap-m","p-cap-s","p-rounds","p-type"].forEach(id => {
+["p-title","p-open","p-close","p-cap-m","p-cap-s","p-rounds","p-type","p-note"].forEach(id => {
   $(id).addEventListener("input", () => {
     if(plan){ plan.rounds = +$("p-rounds").value||1; plan.type = $("p-type").value; }
     drawPreview();
@@ -660,7 +672,7 @@ $("btn-publish").addEventListener("click", async () => {
     cap: (+$("p-cap-m").value||0)*60 + (+$("p-cap-s").value||0),
     open: $("p-open").value,
     close: $("p-close").value,
-    note: ($("p-raw").value.split("\n")[0] || "").trim(),
+    note: $("p-note").value.trim(),
     stations: plan.stations
   };
 
