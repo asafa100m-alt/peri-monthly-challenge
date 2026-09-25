@@ -133,6 +133,33 @@
   .pv-note{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6;}
   .pv-window{font-size:11.5px;color:var(--muted-2);margin-top:12px;}
 
+  /* 成績審核 */
+  .r-group{margin-top:22px;}
+  .r-group > h3{
+    margin:0 0 10px;font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:.06em;
+    display:flex;align-items:center;gap:8px;
+  }
+  .r-group > h3 span{font-size:13px;color:var(--muted-2);font-family:var(--body);font-weight:400;}
+  .rcard{border:1px solid var(--line);background:var(--panel);padding:13px 14px;margin-bottom:10px;}
+  .rcard.pending{border-left:3px solid var(--accent);}
+  .rcard.void{opacity:.5;}
+  .rcard.void .rc-name{text-decoration:line-through;}
+  .rc-top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:11px;}
+  .rc-name{font-weight:700;font-size:15px;}
+  .rc-phone{font-size:12.5px;color:var(--muted-2);font-variant-numeric:tabular-nums;}
+  .rc-when{margin-left:auto;font-size:11.5px;color:var(--muted-2);}
+  .rc-fields{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;}
+  .rc-f{flex:0 1 auto;}
+  .rc-f label{display:block;font-size:11px;color:var(--muted-2);margin-bottom:3px;letter-spacing:.04em;}
+  .rc-f select,.rc-f input{padding:7px 9px;font-size:14px;width:auto;min-width:84px;}
+  .rc-f input.t{width:62px;text-align:center;font-variant-numeric:tabular-nums;}
+  .rc-note{margin:10px 0 0;font-size:13px;color:var(--muted);}
+  .rc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);}
+  .rc-actions .tinybtn{padding:7px 13px;font-size:13px;}
+  .tinybtn.go{border-color:var(--accent);color:#fff;background:var(--accent);}
+  .tinybtn.go:hover{background:var(--accent-hot);border-color:var(--accent-hot);color:#fff;}
+  .r-empty{padding:18px 4px;color:var(--muted-2);font-size:13.5px;}
+
   /* 成績管理 */
   .rtable{width:100%;border-collapse:collapse;font-size:14px;min-width:660px;}
   .rtable th{text-align:left;font-size:11px;color:var(--muted-2);letter-spacing:.06em;font-weight:500;padding:8px 8px;border-bottom:1px solid var(--line-strong);white-space:nowrap;}
@@ -266,6 +293,7 @@ Burpee to plank 12"></textarea>
                 </select></div>
               <div class="field sm"><label for="p-rounds">輪數</label><input id="p-rounds" type="number" min="1" value="4"></div>
             </div>
+            <div id="eq-lists" hidden></div>
             <div class="scrollx">
               <table class="sttable">
                 <thead><tr>
@@ -326,21 +354,15 @@ Burpee to plank 12"></textarea>
     <div id="view-results" hidden>
       <section class="card" style="margin-top:22px">
         <h2 id="r-title">成績管理</h2>
-        <p class="hint">改時間直接改欄位，離開欄位就存。作廢的紀錄不上榜但保留。</p>
+        <p class="hint">學員送出的成績會先進「待審」，按<b>確認上榜</b>才會出現在排行榜。
+          組別、強度、成績都可以在這裡改，改完自動存回試算表。</p>
         <div class="toolbar">
           <select id="r-month" style="max-width:190px"></select>
           <input id="r-search" placeholder="搜尋姓名或手機">
           <button class="tinybtn" id="r-reload">重新整理</button>
           <button class="tinybtn" id="r-export">匯出這個月 CSV</button>
         </div>
-        <div class="scrollx">
-          <table class="rtable">
-            <thead><tr>
-              <th>姓名</th><th>手機</th><th>組別</th><th>成績</th><th>進度（未完賽才填）</th><th>心得</th><th></th>
-            </tr></thead>
-            <tbody id="r-body"></tbody>
-          </table>
-        </div>
+        <div id="r-list"></div>
       </section>
     </div>
   </div>
@@ -366,6 +388,7 @@ let PLANS = [];         // 後台讀回來的所有月份
 let RESULTS = [];       // 目前月份的成績
 let plan = null;        // 正在編輯的課表
 let loadedId = null;    // 這次有沒有先把某個月份載入進來改
+let EQUIP = [];         // 器材重量清單，從試算表「設定」分頁來
 
 // Apps Script 的轉址偶爾會吐出 HTML 錯誤頁（實測約十次一次），所以重試幾遍再放棄。
 // 交成績是「同一人同月覆蓋」的設計，重試不會變成兩筆。
@@ -513,9 +536,22 @@ function doParse(){
   render();
 }
 
+// 動作名稱裡出現器材關鍵字，重量欄就變成那組器材的下拉選單
+function equipFor(name){
+  const n = String(name || "").toLowerCase();
+  return EQUIP.find(e => n.includes(String(e.key).toLowerCase())) || null;
+}
+
 function drawStations(){
   if(!plan) return;
-  $("st-body").innerHTML = plan.stations.map((s,i) => `
+  // 每種器材產生一份 datalist，重量欄用 list 掛上去
+  $("eq-lists").innerHTML = EQUIP.map((e,k) =>
+    `<datalist id="eq-${k}">${e.options.map(o => `<option value="${esc(o)}"></option>`).join("")}</datalist>`
+  ).join("");
+  $("st-body").innerHTML = plan.stations.map((s,i) => {
+    const eq = equipFor(s.name);
+    const li = eq ? ` list="eq-${EQUIP.indexOf(eq)}"` : "";
+    return `
     <tr>
       <td class="no">${i+1}</td>
       <td class="act" data-label="動作"><input data-i="${i}" data-k="name" value="${esc(s.name)}" placeholder="DB Snatch"></td>
@@ -523,12 +559,13 @@ function drawStations(){
       <td data-label="單位"><select data-i="${i}" data-k="unit">
         ${["下","m","cal"].map(u => `<option value="${u}" ${s.unit===u?"selected":""}>${u==="m"?"公尺":u}</option>`).join("")}
       </select></td>
-      <td data-label="Rx 男"><input data-i="${i}" data-k="rxM" value="${esc(s.rxM)}" placeholder="15kg"></td>
-      <td data-label="Rx 女"><input data-i="${i}" data-k="rxF" value="${esc(s.rxF)}" placeholder="10kg"></td>
-      <td data-label="降階 男"><input data-i="${i}" data-k="scM" value="${esc(s.scM)}" placeholder="留空＝不分"></td>
-      <td data-label="降階 女"><input data-i="${i}" data-k="scF" value="${esc(s.scF)}" placeholder="留空＝不分"></td>
+      <td data-label="Rx 男"><input${li} data-i="${i}" data-k="rxM" value="${esc(s.rxM)}" placeholder="15kg"></td>
+      <td data-label="Rx 女"><input${li} data-i="${i}" data-k="rxF" value="${esc(s.rxF)}" placeholder="10kg"></td>
+      <td data-label="降階 男"><input${li} data-i="${i}" data-k="scM" value="${esc(s.scM)}" placeholder="留空＝不分"></td>
+      <td data-label="降階 女"><input${li} data-i="${i}" data-k="scF" value="${esc(s.scF)}" placeholder="留空＝不分"></td>
       <td class="rm"><button class="del" data-del="${i}" title="刪除這一站">×</button></td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 function drawPreview(){
@@ -588,6 +625,7 @@ async function loadPlans(){
     const j = await fetchJSON(API_URL + "?action=bootstrap");
     if(!j.ok) throw new Error(j.error || "讀取失敗");
     PLANS = j.data.months || [];
+    EQUIP = j.data.equipment || [];
     drawPlanList(); drawMonthSelect();
     if(PLANS.length) await loadResults();
   }catch(err){
@@ -700,6 +738,11 @@ $("st-body").addEventListener("input", e => {
   const s = plan.stations[+el.dataset.i];
   s[el.dataset.k] = el.dataset.k === "qty" ? (+el.value||0) : el.value;
   drawPreview();
+});
+
+// 動作名稱換了器材，重量欄的可選清單要跟著換
+$("st-body").addEventListener("change", e => {
+  if(e.target.dataset.k === "name") render();
 });
 $("st-body").addEventListener("change", e => {
   const el = e.target;
@@ -832,70 +875,119 @@ async function loadResults(){
   }
 }
 
+const STATUS = { 待審:"pending", 有效:"live", 作廢:"void" };
+
+function curPlan(){ return PLANS.find(p => p.id === $("r-month").value) || null; }
+
+function rcard(r){
+  const plan = curPlan();
+  const sts  = r.status || "待審";
+  const cls  = sts === "待審" ? "pending" : sts === "作廢" ? "void" : "";
+  const sel  = (field, opts, val) =>
+    `<select data-row="${r.row}" data-f="${field}">` +
+    opts.map(([v,t]) => `<option value="${v}" ${v===val?"selected":""}>${t}</option>`).join("") +
+    `</select>`;
+
+  const stOpts = (plan ? plan.stations : []).map((x,k) => [String(k), `${k+1}. ${x.name}`]);
+  const score = r.done
+    ? `<div class="rc-f"><label>完成時間</label>
+         <input class="t" data-row="${r.row}" data-f="min" value="${Math.floor(r.sec/60)}" inputmode="numeric">
+         <span style="color:var(--muted-2)">:</span>
+         <input class="t" data-row="${r.row}" data-f="sec" value="${String(r.sec%60).padStart(2,"0")}" inputmode="numeric"></div>`
+    : `<div class="rc-f"><label>輪數</label>
+         <input class="t" data-row="${r.row}" data-f="rounds" value="${r.rounds}" inputmode="numeric"></div>
+       <div class="rc-f"><label>停在哪一站</label>${stOpts.length ? sel("st", stOpts, String(r.st)) : "—"}</div>
+       <div class="rc-f"><label>該站數量</label>
+         <input class="t" data-row="${r.row}" data-f="part" value="${r.part}" inputmode="numeric"></div>`;
+
+  const acts = sts === "有效"
+    ? `<button class="tinybtn" data-act="待審" data-row="${r.row}">退回待審</button>
+       <button class="tinybtn" data-act="作廢" data-row="${r.row}">作廢</button>`
+    : sts === "作廢"
+    ? `<button class="tinybtn" data-act="待審" data-row="${r.row}">復原成待審</button>`
+    : `<button class="tinybtn go" data-act="有效" data-row="${r.row}">確認上榜</button>
+       <button class="tinybtn" data-act="作廢" data-row="${r.row}">作廢</button>`;
+
+  return `<div class="rcard ${cls}">
+    <div class="rc-top">
+      <span class="rc-name">${esc(r.name)}</span>
+      <span class="rc-phone">${esc(r.phone)}</span>
+      <span class="rc-when">${esc((r.time||"").slice(5,16))}</span>
+    </div>
+    <div class="rc-fields">
+      <div class="rc-f"><label>組別</label>${sel("sex", [["M","男子組"],["F","女子組"]], r.sex)}</div>
+      ${plan && plan.hasScaled ? `<div class="rc-f"><label>強度</label>${sel("div", [["rx","Rx 標準"],["sc","Scaled 降階"]], r.div)}</div>` : ""}
+      <div class="rc-f"><label>結果</label>${sel("done", [["1","時間內完賽"],["0","未完賽 (CAP)"]], r.done ? "1" : "0")}</div>
+      ${score}
+    </div>
+    ${r.note ? `<p class="rc-note">心得：${esc(r.note)}</p>` : ""}
+    <div class="rc-actions">${acts}</div>
+  </div>`;
+}
+
 function drawResults(){
   const q = $("r-search").value.trim();
   const rows = RESULTS.filter(r => !q || r.name.includes(q) || r.phone.includes(q));
-  if(!rows.length){
-    $("r-body").innerHTML = `<tr><td colspan="7" style="color:var(--muted-2);padding:20px 8px">這個月還沒有成績。</td></tr>`;
-    return;
-  }
-  $("r-body").innerHTML = rows.map(r => {
-    const voided = r.status === "作廢";
-    return `<tr class="${voided ? "void" : ""}">
-      <td class="rname">${esc(r.name)}</td>
-      <td class="num">${esc(r.phone)}</td>
-      <td>${r.sex === "M" ? "男" : "女"}</td>
-      <td>${r.done
-            ? `<input class="num" style="width:78px" data-row="${r.row}" value="${mmss(r.sec)}">`
-            : `<span class="pill cap">CAP</span>`}</td>
-      <td style="color:var(--muted);font-size:13px">${r.done ? "—" : esc(r.rounds + " 輪 + 第" + (r.st+1) + "站 " + r.part)}</td>
-      <td style="color:var(--muted);font-size:13px">${esc(r.note) || "—"}</td>
-      <td><button class="tinybtn" data-void="${r.row}" data-to="${voided ? "有效" : "作廢"}">${voided ? "復原" : "作廢"}</button></td>
-    </tr>`;
+  const groups = [
+    ["待審", "待審", "學員剛送出，還沒上榜"],
+    ["有效", "已上榜", "出現在排行榜上"],
+    ["作廢", "已作廢", "不上榜，但紀錄保留"]
+  ];
+  $("r-list").innerHTML = groups.map(([key, title, hint]) => {
+    const list = rows.filter(r => (r.status || "待審") === key);
+    if(!list.length && key !== "待審") return "";
+    return `<div class="r-group">
+      <h3>${title}${list.length ? ` (${list.length})` : ""}<span>${hint}</span></h3>
+      ${list.length ? list.map(rcard).join("") : `<div class="r-empty">目前沒有待審的成績。</div>`}
+    </div>`;
   }).join("");
 }
 
-$("r-body").addEventListener("click", async e => {
-  const b = e.target.closest("[data-void]"); if(!b) return;
-  const row = +b.dataset.void, to = b.dataset.to;
-  if(!LIVE){
-    const r = RESULTS.find(x => x.row === row);
-    if(r){ r.status = to; drawResults(); }
-    return;
-  }
-  b.disabled = true;
+// 送出一筆修改；失敗就把畫面重畫回去，不要留下假的結果
+async function pushUpdate(row, payload){
+  const r = RESULTS.find(x => x.row === row);
+  if(!r) return;
+  if(!LIVE){ Object.assign(r, payload); drawResults(); return; }
   try{
-    const res = await api("updateResult", {row, status:to});
+    const res = await api("updateResult", Object.assign({row}, payload));
     if(!res.ok) throw new Error(res.error || "更新失敗");
-    const r = RESULTS.find(x => x.row === row);
-    if(r) r.status = to;
-    drawResults();
+    await loadResults();
   }catch(err){
-    alert("更新失敗：" + err.message);
-    b.disabled = false;
+    banner("<b>更新失敗</b> —— " + esc(err.message), true);
+    drawResults();
   }
+}
+
+// 從卡片上讀出目前的成績數值，成績是「完賽」或「未完賽」整組一起送
+function readScore(row){
+  const card = $("r-list").querySelector(`[data-row="${row}"][data-f="done"]`);
+  const done = card ? card.value === "1" : true;
+  const get = f => {
+    const el = $("r-list").querySelector(`[data-row="${row}"][data-f="${f}"]`);
+    return el ? el.value : "";
+  };
+  return done
+    ? { done:true, sec:(+get("min")||0)*60 + (+get("sec")||0) }
+    : { done:false, rounds:+get("rounds")||0, st:+get("st")||0, part:+get("part")||0 };
+}
+
+$("r-list").addEventListener("change", e => {
+  const el = e.target; if(!el.dataset.row) return;
+  const row = +el.dataset.row, f = el.dataset.f;
+  if(f === "sex")      return pushUpdate(row, {sex: el.value});
+  if(f === "div")      return pushUpdate(row, {div: el.value});
+  if(f === "done"){                                   // 切換形狀，先重畫欄位再送
+    const r = RESULTS.find(x => x.row === row);
+    if(r){ r.done = el.value === "1"; drawResults(); }
+    return pushUpdate(row, readScore(row));
+  }
+  pushUpdate(row, readScore(row));                    // 時間、輪數、站別、數量
 });
 
-$("r-body").addEventListener("change", async e => {
-  const el = e.target; if(el.dataset.row === undefined) return;
-  const p = el.value.split(":");
-  const sec = (+p[0]||0)*60 + (+p[1]||0);
-  if(sec <= 0) return alert("時間格式要像 16:07。");
-  const row = +el.dataset.row;
-  if(!LIVE){
-    const r = RESULTS.find(x => x.row === row);
-    if(r){ r.sec = sec; drawResults(); }
-    return;
-  }
-  try{
-    const res = await api("updateResult", {row, sec});
-    if(!res.ok) throw new Error(res.error || "更新失敗");
-    const r = RESULTS.find(x => x.row === row);
-    if(r) r.sec = sec;
-    drawResults();
-  }catch(err){
-    alert("更新失敗：" + err.message);
-  }
+$("r-list").addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  b.disabled = true;
+  await pushUpdate(+b.dataset.row, {status: b.dataset.act});
 });
 
 $("r-search").addEventListener("input", drawResults);
@@ -903,13 +995,14 @@ $("r-month").addEventListener("change", loadResults);
 $("r-reload").addEventListener("click", loadResults);
 
 $("r-export").addEventListener("click", () => {
-  const head = ["姓名","手機","組別","完賽","成績","輪數","站別","該站數量","心得","狀態"];
+  const head = ["姓名","手機","組別","強度","完賽","成績","輪數","站別","該站數量","心得","狀態"];
   const lines = [head.join(",")].concat(RESULTS.map(r => [
-    r.name, r.phone, r.sex === "M" ? "男" : "女", r.done ? "是" : "否",
-    r.done ? mmss(r.sec) : "", r.done ? "" : r.rounds, r.done ? "" : (r.st + 1),
-    r.done ? "" : r.part, '"' + String(r.note).replace(/"/g,'""') + '"', r.status
+    r.name, r.phone, r.sex === "M" ? "男" : "女", r.div === "sc" ? "Scaled" : "Rx",
+    r.done ? "是" : "否", r.done ? mmss(r.sec) : "",
+    r.done ? "" : r.rounds, r.done ? "" : (r.st + 1), r.done ? "" : r.part,
+    '"' + String(r.note).replace(/"/g,'""') + '"', r.status
   ].join(",")));
-  const blob = new Blob(["﻿" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const blob = new Blob(["\ufeff" + lines.join("\n")], {type:"text/csv;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = ($("r-month").value || "成績") + ".csv";

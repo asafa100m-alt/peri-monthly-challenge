@@ -597,7 +597,7 @@ function drawSubmit(){
       <div class="field full"><label for="f-note">完賽心得（選填，會顯示在排行榜）</label>
         <textarea id="f-note" maxlength="40" placeholder="例：前兩輪衝太快，後面付出代價"></textarea></div>
       <button class="submit" type="submit" id="f-submit">送出成績</button>
-      <p class="hint">榜上只顯示姓名與末四碼。同一個月重複交以最新一次為準。</p>
+      <p class="hint">送出後要等教練確認才會上榜。榜上只顯示姓名與末四碼，同一個月重複交以最新一次為準。</p>
     </form>`;
 
   // 記住上次填的姓名與手機，省得每個月重打
@@ -697,8 +697,10 @@ async function onSubmit(e){
     }
     sex = r.sex;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
-    drawLeaderboard(); drawHistory();
-    document.querySelector(".lb .me")?.scrollIntoView({behavior:"smooth", block:"center"});
+    drawTabs(); drawLeaderboard(); drawHistory();
+    banner("<b>成績已送出</b> —— 教練確認之後才會出現在排行榜，通常不會太久。" +
+           "發現填錯了就再交一次，會蓋掉上一次的。");
+    window.scrollTo({top:0, behavior:"smooth"});
   }catch(err){
     alert("送出失敗：" + err.message + "\n\n網路狀況不好時再試一次即可，不會重複記錄。");
   }finally{
