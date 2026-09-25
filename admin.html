@@ -52,7 +52,9 @@
     margin:26px 0 10px;padding-top:16px;border-top:1px solid var(--line);
     font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.06em;
   }
-  .card > .hint,.hint{margin:0 0 10px;font-size:12.5px;color:var(--muted-2);line-height:1.6;}
+  .card > .hint,.hint{margin:0 0 10px;font-size:12.5px;color:var(--muted-2);line-height:1.7;}
+  .hint code{background:var(--panel-2);padding:1px 5px;font-size:12px;}
+  .hint b{color:var(--accent-hot);}
   .lbl{font-size:11.5px;color:var(--muted-2);letter-spacing:.08em;margin:0;}
   .months-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
   .field.grow{flex:1 1 100%;margin:0;}
@@ -77,6 +79,7 @@
   .pv-load .tag b{font-family:var(--display);font-size:13px;}
   .pv-load .m{color:#1B6AA8;background:rgba(27,106,168,.11);}
   .pv-load .f{color:#B83A72;background:rgba(184,58,114,.11);}
+  .pv-load .lv{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted-2);min-width:22px;}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:12px;}
@@ -238,9 +241,11 @@
             </div>
 
             <h3 class="sub-head">課表</h3>
-            <p class="hint">照平常寫白板的方式貼。第一行寫賽制，後面每行一站。</p>
+            <p class="hint">照平常寫白板的方式貼。第一行寫賽制，後面每行一站。<br>
+              要分 Rx 與降階就多加一組括號並標 <b>SC</b>，例如
+              <code>DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg)</code>。不加就是只有一種重量。</p>
             <textarea id="p-raw" rows="5" spellcheck="false">4 Round For Time
-DB Snatch 16 (M15kg/F10kg)
+DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg)
 Row Erg 300m
 Burpee to plank 12</textarea>
             <button class="btn" id="btn-parse">解析課表</button>
@@ -258,8 +263,11 @@ Burpee to plank 12</textarea>
             <div class="scrollx">
               <table class="sttable">
                 <thead><tr>
-                  <th style="width:26px"></th><th>動作</th><th style="width:88px">數量</th>
-                  <th style="width:82px">單位</th><th style="width:92px">男 M</th><th style="width:92px">女 F</th><th style="width:34px"></th>
+                  <th style="width:26px"></th><th>動作</th><th style="width:72px">數量</th>
+                  <th style="width:74px">單位</th>
+                  <th style="width:84px">Rx 男</th><th style="width:84px">Rx 女</th>
+                  <th style="width:84px">降階 男</th><th style="width:84px">降階 女</th>
+                  <th style="width:34px"></th>
                 </tr></thead>
                 <tbody id="st-body"></tbody>
               </table>
@@ -443,14 +451,19 @@ function parseWorkout(text){
   }
 
   lines.forEach(line => {
-    let load = {M:"", F:""}, body = line;
-    const br = line.match(/[（(]([^）)]*)[）)]/);
-    if(br){
-      body = line.replace(br[0], " ").trim();
-      const g = br[1].match(/M\s*([^\/、,]+)[\/、,]\s*F\s*(.+)/i);
-      if(g){ load.M = g[1].trim(); load.F = g[2].trim(); }
-      else { load.M = load.F = br[1].trim(); }
-    }
+    // 括號可以有兩組：沒標的是 Rx，標了 SC / Scaled / 降階 的是降階
+    let rx = {M:"", F:""}, sc = {M:"", F:""}, body = line;
+    const groups = line.match(/[（(][^）)]*[）)]/g) || [];
+    groups.forEach(g => {
+      body = body.replace(g, " ");
+      let inner = g.slice(1, -1).trim();
+      const scaled = /^(sc|scaled|降階|降階版)\s*[:：]?\s*/i.test(inner);
+      inner = inner.replace(/^(sc|scaled|降階|降階版)\s*[:：]?\s*/i, "").trim();
+      const pair = inner.match(/M\s*([^\/、,]+)[\/、,]\s*F\s*(.+)/i);
+      const val = pair ? {M:pair[1].trim(), F:pair[2].trim()} : {M:inner, F:inner};
+      if(scaled) sc = val; else rx = val;
+    });
+    body = body.trim();
     let name = body, qty = 0, unit = "下";
     const suffix = body.match(/^(.*?)[\s×x*]+([\d.]+)\s*(m|公尺|cal|kcal|下|次|reps?)?\.?$/i);
     const prefix = body.match(/^([\d.]+)\s*(m|公尺|cal|kcal|下|次|reps?)?[\s×x*]+(.*)$/i);
@@ -458,7 +471,8 @@ function parseWorkout(text){
     else if(prefix && prefix[3].trim()){ qty = +prefix[1]; unit = toUnit(prefix[2]); name = prefix[3].trim(); }
     else { out.unknown.push(line); }
 
-    out.stations.push({name:name.replace(/[,:：]\s*$/,""), qty, unit, M:load.M, F:load.F});
+    out.stations.push({name:name.replace(/[,:：]\s*$/,""), qty, unit,
+                       rxM:rx.M, rxF:rx.F, scM:sc.M, scF:sc.F});
   });
   return out;
 }
@@ -501,8 +515,10 @@ function drawStations(){
       <td data-label="單位"><select data-i="${i}" data-k="unit">
         ${["下","m","cal"].map(u => `<option value="${u}" ${s.unit===u?"selected":""}>${u==="m"?"公尺":u}</option>`).join("")}
       </select></td>
-      <td data-label="男 M"><input data-i="${i}" data-k="M" value="${esc(s.M)}" placeholder="15kg"></td>
-      <td data-label="女 F"><input data-i="${i}" data-k="F" value="${esc(s.F)}" placeholder="10kg"></td>
+      <td data-label="Rx 男"><input data-i="${i}" data-k="rxM" value="${esc(s.rxM)}" placeholder="15kg"></td>
+      <td data-label="Rx 女"><input data-i="${i}" data-k="rxF" value="${esc(s.rxF)}" placeholder="10kg"></td>
+      <td data-label="降階 男"><input data-i="${i}" data-k="scM" value="${esc(s.scM)}" placeholder="留空＝不分"></td>
+      <td data-label="降階 女"><input data-i="${i}" data-k="scF" value="${esc(s.scF)}" placeholder="留空＝不分"></td>
       <td class="rm"><button class="del" data-del="${i}" title="刪除這一站">×</button></td>
     </tr>`).join("");
 }
@@ -516,9 +532,13 @@ function drawPreview(){
   $("pv-title").textContent = $("p-title").value || "（未命名）";
   $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
   $("pv-st").innerHTML = plan.stations.map((s,i) => {
-    const load = (s.M || s.F) ? `<div class="pv-load">
-      <span class="tag m"><b>男</b>${esc(s.M)||"—"}</span>
-      <span class="tag f"><b>女</b>${esc(s.F)||"—"}</span></div>` : "";
+    const prow = (lab, mv, fv) => `<div class="pv-load">
+      ${lab ? `<span class="lv">${lab}</span>` : ""}
+      <span class="tag m"><b>男</b>${esc(mv)||"—"}</span>
+      <span class="tag f"><b>女</b>${esc(fv)||"—"}</span></div>`;
+    const hasRx = s.rxM || s.rxF, hasSc = s.scM || s.scF;
+    const load = (hasRx && hasSc) ? prow("Rx", s.rxM, s.rxF) + prow("SC", s.scM, s.scF)
+               : hasRx ? prow("", s.rxM, s.rxF) : "";
     return `<li><span class="pv-no">${i+1}</span>
       <span class="pv-name">${esc(s.name)}${load}</span>
       <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span></li>`;
@@ -644,7 +664,7 @@ $("del-yes").addEventListener("click", async () => {
 $("btn-parse").addEventListener("click", doParse);
 $("btn-add").addEventListener("click", () => {
   if(!plan) plan = {type:"fortime", rounds:1, cap:null, stations:[], unknown:[]};
-  plan.stations.push({name:"", qty:0, unit:"下", M:"", F:""});
+  plan.stations.push({name:"", qty:0, unit:"下", rxM:"", rxF:"", scM:"", scF:""});
   render();
 });
 $("st-body").addEventListener("input", e => {
@@ -674,6 +694,9 @@ $("p-month").addEventListener("input", drawPlanList);
 function buildPayload(){
   if(!plan || !plan.stations.length){ alert("還沒有課表內容，先貼上並解析。"); return null; }
   if(plan.stations.some(s => !s.name.trim() || !s.qty)){ alert("有站別的動作名稱或數量還沒填完整。"); return null; }
+  if(plan.stations.some(s => (s.scM || s.scF) && !(s.rxM || s.rxF))){
+    alert("有站別只填了降階重量卻沒填 Rx，補上 Rx 才能發布。"); return null;
+  }
   if(!$("p-month").value){ alert("請選月份。"); return null; }
   return {
     id: $("p-month").value,
