@@ -79,7 +79,13 @@
   .pv-load .tag b{font-family:var(--display);font-size:13px;}
   .pv-load .m{color:#1B6AA8;background:rgba(27,106,168,.11);}
   .pv-load .f{color:#B83A72;background:rgba(184,58,114,.11);}
-  .pv-load .lv{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--muted-2);min-width:22px;}
+  .pv-load .lv{
+    display:inline-block;min-width:24px;text-align:center;
+    font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.08em;
+    padding:1px 5px;line-height:1.2;
+  }
+  .pv-load .lv.rx{color:#FFFFFF;background:#1F1A16;}
+  .pv-load .lv.sc{color:#6B645D;background:#E7E2DD;}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:12px;}
@@ -533,7 +539,7 @@ function drawPreview(){
   $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
   $("pv-st").innerHTML = plan.stations.map((s,i) => {
     const prow = (lab, mv, fv) => `<div class="pv-load">
-      ${lab ? `<span class="lv">${lab}</span>` : ""}
+      ${lab ? `<span class="lv ${lab === "Rx" ? "rx" : "sc"}">${lab}</span>` : ""}
       <span class="tag m"><b>男</b>${esc(mv)||"—"}</span>
       <span class="tag f"><b>女</b>${esc(fv)||"—"}</span></div>`;
     const hasRx = s.rxM || s.rxF, hasSc = s.scM || s.scF;
