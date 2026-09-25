@@ -85,7 +85,7 @@
     padding:1px 5px;line-height:1.2;
   }
   .pv-load .lv.rx{color:#FFFFFF;background:#1F1A16;}
-  .pv-load .lv.sc{color:#6B645D;background:#E7E2DD;}
+  .pv-load .lv.sc{color:#6B4A2F;background:#EADDCB;}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:12px;}
@@ -233,12 +233,12 @@
             </div>
 
             <div class="row">
-              <div class="field"><label for="p-month">月份</label><input id="p-month" type="month" value="2026-10"></div>
-              <div class="field"><label for="p-title">標題</label><input id="p-title" value="十月：秋操" placeholder="十月：秋操"></div>
+              <div class="field"><label for="p-month">月份</label><input id="p-month" type="month"></div>
+              <div class="field"><label for="p-title">標題</label><input id="p-title" placeholder="例：十月挑戰"></div>
             </div>
             <div class="row">
-              <div class="field"><label for="p-open">開放日</label><input id="p-open" type="date" value="2026-10-01"></div>
-              <div class="field"><label for="p-close">截止日</label><input id="p-close" type="date" value="2026-10-31"></div>
+              <div class="field"><label for="p-open">開放日</label><input id="p-open" type="date"></div>
+              <div class="field"><label for="p-close">截止日</label><input id="p-close" type="date"></div>
             </div>
             <div class="row">
               <div class="field sm"><label for="p-cap-m">CAP 分</label><input id="p-cap-m" type="number" min="1" value="20"></div>
@@ -250,10 +250,10 @@
             <p class="hint">照平常寫白板的方式貼。第一行寫賽制，後面每行一站。<br>
               要分 Rx 與降階就多加一組括號並標 <b>SC</b>，例如
               <code>DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg)</code>。不加就是只有一種重量。</p>
-            <textarea id="p-raw" rows="5" spellcheck="false">4 Round For Time
+            <textarea id="p-raw" rows="5" spellcheck="false" placeholder="4 Round For Time
 DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg)
 Row Erg 300m
-Burpee to plank 12</textarea>
+Burpee to plank 12"></textarea>
             <button class="btn" id="btn-parse">解析課表</button>
 
             <h3 class="sub-head">確認內容</h3>
@@ -423,14 +423,16 @@ $("gate-form").addEventListener("submit", async e => {
 
 async function enter(demo){
   $("gate").hidden = true; $("app").hidden = false;
+  if(!$("p-month").value){ $("p-month").value = thisMonth(); syncDates(); }
   if(demo){
     PLANS = DEMO_PLANS;
     banner("<b>示範模式</b> —— 還沒填入後台網址，操作不會真的存檔。把 Apps Script 的網址填進 <code>API_URL</code> 就會連上真的後台。");
-    doParse(); drawPlanList(); drawMonthSelect(); drawResults();
+    if($("p-raw").value.trim()) doParse();
+    drawPlanList(); drawMonthSelect(); drawResults();
     return;
   }
   await loadPlans();
-  doParse();
+  if($("p-raw").value.trim()) doParse();
 }
 
 /* ==========================================================================
@@ -558,6 +560,26 @@ function drawPreview(){
 const fmt = d => { const p = d.split("-"); return +p[1] + "/" + p[2]; };
 
 function render(){ drawStations(); drawPreview(); }
+
+/* 月份決定開放日與截止日，預設就是那個月的 1 號到最後一天。
+   會這樣做是因為「月份填十月、日期卻留九月」是最容易犯的錯。 */
+function monthRange(ym){
+  const [y, mo] = ym.split("-").map(Number);
+  const pad = n => String(n).padStart(2, "0");
+  const last = new Date(y, mo, 0).getDate();
+  return [`${y}-${pad(mo)}-01`, `${y}-${pad(mo)}-${pad(last)}`];
+}
+function syncDates(){
+  const ym = $("p-month").value;
+  if(!/^\d{4}-\d{2}$/.test(ym)) return;
+  const [a, b] = monthRange(ym);
+  $("p-open").value = a;
+  $("p-close").value = b;
+}
+function thisMonth(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
 
 /* ---------------- 月份清單 ---------------- */
 
@@ -693,7 +715,11 @@ $("st-body").addEventListener("click", e => {
     drawPreview();
   });
 });
-$("p-month").addEventListener("input", drawPlanList);
+$("p-month").addEventListener("input", () => {
+  syncDates();               // 手動改月份時，日期自動跟著換到那個月
+  drawPlanList();
+  drawPreview();
+});
 
 /* ---------------- 發布 ---------------- */
 
