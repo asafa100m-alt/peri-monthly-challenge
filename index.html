@@ -171,7 +171,7 @@
   .tab:last-child{border-right:0;}
   .tab em{font-style:normal;margin-left:7px;font-size:13px;color:var(--muted-2);font-variant-numeric:tabular-nums;}
   .tab[aria-selected="true"] em{color:var(--accent-hot);}
-  .tab[aria-selected="true"]{background:var(--accent-dim);color:var(--accent-hot);box-shadow:inset 0 -2px 0 var(--accent);}
+  .tab[aria-selected="true"]{background:var(--accent-dim);color:var(--accent-hot);}
 
   /* ---------- leaderboard ---------- */
   .lb{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-top:0;}
@@ -271,14 +271,18 @@
   @keyframes sweep{from{transform:translateX(-130%);}to{transform:translateX(330%);}}
   @keyframes shimmer{from{background-position:180% 0;}to{background-position:-180% 0;}}
   @keyframes drawIn{to{stroke-dashoffset:0;}}
+  @keyframes streamIn{                       /* 由左往右刷開，像資料一列一列進來 */
+    from{opacity:0;transform:translateX(-12px);clip-path:inset(0 100% 0 0);}
+    to{opacity:1;transform:none;clip-path:inset(0 0 0 0);}
+  }
 
   .rise{animation:rise .52s var(--ease) both;}
   .mark-rule{transform-origin:left center;animation:ruleIn .5s var(--ease) both .1s;}
 
-  /* 課表分站逐行揭示 */
-  .stations li{animation:rise .42s var(--ease) both;animation-delay:calc(60ms + var(--i,0) * 55ms);}
-  /* 排行榜逐列 */
-  .lb li.in{animation:rise .4s var(--ease) both;animation-delay:calc(var(--i,0) * 42ms);}
+  /* 課表分站逐行刷進來 */
+  .stations li{animation:streamIn .42s var(--ease) both;animation-delay:calc(70ms + var(--i,0) * 55ms);}
+  /* 排行榜逐列刷進來 */
+  .lb li.in{animation:streamIn .42s var(--ease) both;animation-delay:calc(var(--i,0) * 45ms);}
   /* 第一名掃過一道光，只掃一次 */
   .lb li.shine{position:relative;overflow:hidden;}
   .lb li.shine::after{
@@ -309,58 +313,101 @@
     stroke-dasharray:22;stroke-dashoffset:22;animation:drawIn .45s var(--ease) .1s both;
   }
 
-  /* ---------- 線條跑者 ----------
-     中立姿勢是站直、四肢朝下，跑姿全部靠旋轉做出來。
-     角度正值＝順時針＝往後（人面向右）；膝蓋只能往後折，所以小腿的值不會是負的。 */
-  .runner{width:92px;height:92px;display:block;margin:0 auto 4px;overflow:visible;}
-  .runner path,.runner circle{
-    fill:none;stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;
+  /* ---------- 載入中的 HUD ---------- */
+  /* 頂端那條細線：只要還在跟後台要資料就一直跑，拿到就收掉 */
+  .netbar{position:absolute;left:0;right:0;bottom:-1px;height:2px;overflow:hidden;pointer-events:none;}
+  .netbar::after{
+    content:"";position:absolute;top:0;bottom:0;width:38%;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    animation:netrun 1.15s ease-in-out infinite;
   }
-  .runner .lite path{opacity:.3;}
-  .runner .rn-ground{opacity:.28;stroke-width:4.5;stroke-dasharray:12 10;animation:rnGround .33s linear infinite;}
-  .runner g{transform-box:view-box;}
+  @keyframes netrun{from{transform:translateX(-120%);}to{transform:translateX(330%);}}
 
-  .rn-bob{animation:rnBob .33s ease-in-out infinite alternate;transform-origin:58px 70px;}
-  .rn-arm{animation:rnArm .66s ease-in-out infinite;transform-origin:62px 38px;}
-  .rn-arm .fore{animation:rnFore .66s ease-in-out infinite;transform-origin:62px 55px;}
-  .rn-leg{animation:rnThigh .66s ease-in-out infinite;transform-origin:54px 68px;}
-  .rn-leg .shin{animation:rnShin .66s ease-in-out infinite;transform-origin:54px 87px;}
-  /* 慢半拍的那一側。不能用 reverse —— keyframes 頭尾相同，反播跟正播長得一樣。
-     手要跟對側的腳同相，所以 A 手配 B 腳。 */
-  .rn-armA,.rn-armA .fore,.rn-legB,.rn-legB .shin{animation-delay:-.33s;}
-
-  @keyframes rnBob{from{transform:translateY(1.5px);}to{transform:translateY(-2.5px);}}
-  @keyframes rnArm  {0%{transform:rotate(34deg);}  50%{transform:rotate(-30deg);} 100%{transform:rotate(34deg);}}
-  @keyframes rnFore {0%{transform:rotate(-50deg);} 50%{transform:rotate(-82deg);} 100%{transform:rotate(-50deg);}}
-  @keyframes rnThigh{0%{transform:rotate(28deg);}  50%{transform:rotate(-38deg);} 100%{transform:rotate(28deg);}}
-  /* 小腿的角度會疊加在大腿上，所以蹬地那一刻要接近打直，不然整條腿會往後躺平。
-     蹬直 → 腳跟收起 → 擺盪過身體下方收到最緊 → 往前伸打直 → 落地支撐 */
-  @keyframes rnShin{0%{transform:rotate(12deg);}  14%{transform:rotate(68deg);} 30%{transform:rotate(95deg);}
-                    46%{transform:rotate(55deg);} 58%{transform:rotate(18deg);} 70%{transform:rotate(4deg);}
-                    86%{transform:rotate(8deg);}  100%{transform:rotate(12deg);}}
-  @keyframes rnGround{to{stroke-dashoffset:-22;}}
+  /* 訊號條 */
+  .hud{display:flex;flex-direction:column;align-items:center;gap:11px;padding:22px 0 18px;}
+  .hud-meter{display:flex;align-items:flex-end;gap:3px;height:22px;}
+  .hud-meter i{
+    width:3px;height:100%;background:var(--accent);transform-origin:bottom;
+    animation:hudbar 1.25s ease-in-out infinite;animation-delay:calc(var(--i) * 70ms);
+  }
+  @keyframes hudbar{0%,100%{transform:scaleY(.28);opacity:.16;} 42%{transform:scaleY(1);opacity:1;}}
+  .loading{
+    text-align:center;color:var(--muted-2);font-family:var(--display);
+    font-size:13px;font-weight:600;letter-spacing:.3em;text-indent:.3em;
+  }
 
   /* ---------- 載入骨架 ---------- */
-  .skel{border:1px solid var(--line);border-top:3px solid var(--accent);background:var(--panel);padding:20px 18px 22px;}
-  .sk{
-    height:13px;border-radius:2px;margin-bottom:11px;
-    background:linear-gradient(100deg,var(--panel-2) 30%,#FAF8F7 50%,var(--panel-2) 70%);
-    background-size:200% 100%;animation:shimmer 1.35s linear infinite;
+  .skel{
+    position:relative;overflow:hidden;background:var(--panel);
+    border:1px solid var(--line);border-top:3px solid var(--accent);padding:20px 18px 22px;
   }
+  .skel::after{                       /* 斜斜掃過去的那道光 */
+    content:"";position:absolute;top:-40%;bottom:-40%;left:0;width:42%;
+    background:linear-gradient(90deg,transparent,rgba(240,90,50,.065),transparent);
+    animation:scan 1.6s linear infinite;
+  }
+  @keyframes scan{from{transform:translateX(-170%) skewX(-16deg);} to{transform:translateX(410%) skewX(-16deg);}}
+  .sk{height:13px;margin-bottom:11px;background:var(--panel-2);}
   .sk.t{height:30px;width:62%;margin-bottom:16px;}
   .sk.s{width:38%;}
   .sk.w{width:86%;}
   .sk.n{width:70%;}
-  .loading{padding:26px 0 8px;text-align:center;color:var(--muted-2);font-family:var(--display);font-size:16px;letter-spacing:.1em;}
 
-  /* 空狀態也放跑者，比一行灰字好看 */
-  .empty .runner{width:76px;height:76px;margin-bottom:2px;}
+  /* ---------- 其他機械感的細節 ---------- */
+  /* 課表卡對角兩個 HUD 角標，內容出現之後才畫上去 */
+  .board{position:relative;overflow:hidden;}
+  .board::before,.board::after{
+    content:"";position:absolute;width:12px;height:12px;
+    border:2px solid var(--accent);pointer-events:none;
+    animation:cornerIn .38s var(--ease) both .36s;
+  }
+  .board::before{top:6px;right:6px;border-left:0;border-bottom:0;transform-origin:top right;}
+  .board::after{bottom:6px;left:6px;border-right:0;border-top:0;transform-origin:bottom left;}
+  @keyframes cornerIn{from{opacity:0;transform:scale(.25);}to{opacity:1;transform:none;}}
+
+  /* 課表出現時掃過去一次 */
+  .scanline{
+    position:absolute;top:0;bottom:0;left:0;width:42%;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(240,90,50,.11),transparent);
+    animation:scan 1.1s var(--ease) .2s 1 both;
+  }
+
+  /* 每個標題前面一截短橫，像儀表上的項目標記 */
+  .sec-head::before{
+    content:"";display:inline-block;width:12px;height:2px;background:var(--accent);
+    vertical-align:middle;margin:-3px 9px 0 0;
+    transform-origin:left center;animation:ruleIn .42s var(--ease) both .14s;
+  }
+
+  /* 時間上限：數字往上跑的同時，底下那條軌道一起填滿 */
+  .timecap{position:relative;overflow:hidden;}
+  .timecap::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+    background:var(--accent);transform-origin:left;animation:ruleIn .8s var(--ease) both;
+  }
+
+  /* 分頁指示線用滑的，不要用跳的 */
+  .tabs{position:relative;}
+  .tabs::after{
+    content:"";position:absolute;left:0;bottom:0;width:50%;height:2px;
+    background:var(--accent);transition:transform .3s var(--ease);
+  }
+  .tabs[data-sex="F"]::after{transform:translateX(100%);}
+
+  /* 空狀態：一條跑馬燈虛線，表示這個頻道還沒有資料進來 */
+  .empty .idle{
+    display:block;height:2px;width:116px;margin:0 auto 14px;opacity:.4;
+    background:repeating-linear-gradient(90deg,var(--accent) 0 9px,transparent 9px 19px);
+    animation:idle .85s linear infinite;
+  }
+  @keyframes idle{to{background-position:19px 0;}}
 
   @media (prefers-reduced-motion:reduce){
     *{transition:none!important;}
     *,*::before,*::after{animation:none!important;}
     .sk{background:var(--panel-2)!important;}
-    .h-fill,.stations li,.lb li.in{clip-path:none!important;opacity:1!important;transform:none!important;}
+    .h-fill,.stations li,.lb li.in,.board::before,.board::after,.sec-head::before,.timecap::after{clip-path:none!important;opacity:1!important;transform:none!important;}
+    .netbar,.hud,.scanline,.skel::after{display:none!important;}
   }
 </style>
 
@@ -372,24 +419,17 @@
     </div>
     <h1>每月小挑戰</h1>
   </div>
+  <div class="netbar" id="netbar"></div>
 </header>
 
 <div class="wrap is-loading">
 
   <div class="banner" id="banner" hidden></div>
   <div id="loading">
-    <svg class="runner" viewBox="0 0 120 120" role="img" aria-label="載入中">
-      <g class="rn-bob">
-        <g class="rn-arm rn-armB lite"><path d="M62 38 L62 55"/><g class="fore"><path d="M62 55 L62 70"/></g></g>
-        <g class="rn-leg rn-legB lite"><path d="M54 68 L54 87"/><g class="shin"><path d="M54 87 L54 106"/></g></g>
-        <circle cx="66" cy="22" r="7"/>
-        <path d="M64 30 L54 68"/>
-        <g class="rn-leg rn-legA"><path d="M54 68 L54 87"/><g class="shin"><path d="M54 87 L54 106"/></g></g>
-        <g class="rn-arm rn-armA"><path d="M62 38 L62 55"/><g class="fore"><path d="M62 55 L62 70"/></g></g>
-      </g>
-      <path class="rn-ground" d="M18 108 L102 108"/>
-    </svg>
-    <div class="loading">載入中</div>
+    <div class="hud" role="img" aria-label="載入中">
+      <div class="hud-meter"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i><i style="--i:7"></i><i style="--i:8"></i><i style="--i:9"></i><i style="--i:10"></i><i style="--i:11"></i><i style="--i:12"></i></div>
+      <div class="loading">LOADING</div>
+    </div>
     <div class="skel" aria-hidden="true">
       <div class="sk s"></div>
       <div class="sk t"></div>
@@ -404,6 +444,7 @@
   <div class="months" role="tablist" aria-label="選擇月份" id="months"></div>
 
   <section class="board" aria-labelledby="board-title">
+    <i class="scanline" aria-hidden="true"></i>
     <span class="board-kind" id="board-kind"></span>
     <h2 class="board-title" id="board-title"></h2>
     <div class="timecap" id="board-cap"></div>
@@ -526,6 +567,9 @@ function loadSnapshot(){
   }catch(e){ return null; }
 }
 
+// 頂端那條細線：跟後台要資料的期間亮著，拿到（或失敗）就收掉
+const net = on => { const b = $("netbar"); if(b) b.hidden = !on; };
+
 function banner(html, bad){
   const b = $("banner");
   b.innerHTML = html;
@@ -582,13 +626,6 @@ const esc = s => String(s == null ? "" : s)
 /* ---------------- 動畫小工具 ---------------- */
 
 const CALM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-// 跑者就用載入畫面那一份，不另外再寫一次
-let RUNNER = "";
-try{
-  RUNNER = document.querySelector("#loading .runner").outerHTML
-    .replace('role="img"', "").replace('aria-label="載入中"', 'aria-hidden="true"');
-}catch(e){}
 
 // 同一塊內容沒變就別重播動畫。（開頁時會先畫快照、再畫後台回來的資料，
 //  兩次內容通常一模一樣，不擋的話使用者會看到整頁閃一下。）
@@ -694,6 +731,7 @@ function drawStats(){
 // 兩個分頁各標自己那組的人數，切換前就知道有多少人
 function drawTabs(){
   const m = cur();
+  document.querySelector(".tabs").dataset.sex = sex;      // 指示線滑到對的那一邊
   document.querySelectorAll(".tab").forEach(t => {
     const n = m.results.filter(r => r.sex === t.dataset.sex).length;
     t.innerHTML = (t.dataset.sex === "M" ? "男子組" : "女子組") + `<em>${n}</em>`;
@@ -718,7 +756,7 @@ function drawLeaderboard(){
         <span>${scoreSub(m,r)}</span>
       </span>
     </li>`).join("")
-    : `<div class="empty">${RUNNER}這組還沒有人交成績，你可以是第一個。</div>`;
+    : `<div class="empty"><span class="idle"></span>這組還沒有人交成績，你可以是第一個。</div>`;
   $("board").replaceWith(fresh);
 
   // 榜單內容真的有變才逐列進場，否則開頁時快照與後台資料會讓它跑兩次
@@ -868,6 +906,7 @@ async function onSubmit(e){
 
   const btn = $("f-submit");
   busy = true; btn.disabled = true; btn.setAttribute("aria-busy","true"); btn.textContent = "送出中⋯";
+  net(true);
 
   try{
     if(LIVE){
@@ -885,6 +924,7 @@ async function onSubmit(e){
       redraw();
     }
     sex = r.sex;
+    document.querySelector(".tabs").dataset.sex = sex;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
     drawTabs(); drawLeaderboard(); drawHistory();
     banner('<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.8 L9.6 18.4 L20 7"/></svg>' +
@@ -895,6 +935,7 @@ async function onSubmit(e){
     alert("送出失敗：" + err.message + "\n\n網路狀況不好時再試一次即可，不會重複記錄。");
   }finally{
     busy = false;
+    net(false);
     if($("f-submit")){
       $("f-submit").disabled = false;
       $("f-submit").removeAttribute("aria-busy");
@@ -970,14 +1011,19 @@ function redraw(){
 }
 
 async function reload(){
-  const data = await fetchBootstrap();
-  saveSnapshot(data);
-  MONTHS = data.months || [];
-  if(!MONTHS.some(m => m.id === monthId)){
-    monthId = (MONTHS.find(m => m.isOpen) || MONTHS[0] || {}).id;
+  net(true);
+  try{
+    const data = await fetchBootstrap();
+    saveSnapshot(data);
+    MONTHS = data.months || [];
+    if(!MONTHS.some(m => m.id === monthId)){
+      monthId = (MONTHS.find(m => m.isOpen) || MONTHS[0] || {}).id;
+    }
+    if(data.notice) banner(esc(data.notice));
+    redraw();
+  }finally{
+    net(false);
   }
-  if(data.notice) banner(esc(data.notice));
-  redraw();
 }
 
 async function boot(){
@@ -985,6 +1031,7 @@ async function boot(){
     MONTHS = DEMO_MONTHS;
     monthId = MONTHS[0].id;
     $("loading").hidden = true;
+    net(false);
     banner("<b>示範模式</b> —— 還沒填入後台網址，畫面上的成績都是假資料，交出去不會被保存。把 Apps Script 的網址填進 <code>API_URL</code> 就會連上真的後台。");
     redraw();
     return;
@@ -1020,6 +1067,7 @@ $("months").addEventListener("click", e => {
 document.querySelector(".tabs").addEventListener("click", e => {
   const t = e.target.closest(".tab"); if(!t) return;
   sex = t.dataset.sex;
+  document.querySelector(".tabs").dataset.sex = sex;
   document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x===t));
   drawLeaderboard();
 });
