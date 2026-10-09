@@ -86,6 +86,7 @@
   }
   .pv-load .lv.rx{color:#FFFFFF;background:#1F1A16;}
   .pv-load .lv.sc{color:#6B4A2F;background:#EADDCB;}
+  .pv-load .lv.co{color:#FFFFFF;background:#12518C;}
 
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:12px;}
@@ -275,10 +276,10 @@
 
             <h3 class="sub-head">課表</h3>
             <p class="hint">照平常寫白板的方式貼。第一行寫賽制，後面每行一站。<br>
-              要分 Rx 與降階就多加一組括號並標 <b>SC</b>，例如
-              <code>DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg)</code>。不加就是只有一種重量。</p>
+              要分 Rx 與降階就多加一組括號並標 <b>SC</b>，要開教練組再加一組標 <b>CO</b>，例如
+              <code>DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg) (CO M22.5kg/F15kg)</code>。不加就是只有一種重量。</p>
             <textarea id="p-raw" rows="5" spellcheck="false" placeholder="4 Round For Time
-DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg)
+DB Snatch 16 (M15kg/F10kg) (SC M10kg/F7kg) (CO M22.5kg/F15kg)
 Row Erg 300m
 Burpee to plank 12"></textarea>
             <button class="btn" id="btn-parse">解析課表</button>
@@ -301,6 +302,7 @@ Burpee to plank 12"></textarea>
                   <th style="width:74px">單位</th>
                   <th style="width:84px">Rx 男</th><th style="width:84px">Rx 女</th>
                   <th style="width:84px">降階 男</th><th style="width:84px">降階 女</th>
+                  <th style="width:84px">教練 男</th><th style="width:84px">教練 女</th>
                   <th style="width:34px"></th>
                 </tr></thead>
                 <tbody id="st-body"></tbody>
@@ -482,17 +484,19 @@ function parseWorkout(text){
   }
 
   lines.forEach(line => {
-    // 括號可以有兩組：沒標的是 Rx，標了 SC / Scaled / 降階 的是降階
-    let rx = {M:"", F:""}, sc = {M:"", F:""}, body = line;
+    // 括號最多三組：沒標的是 Rx，標 SC / 降階 的是降階，標 CO / 教練 的是教練組
+    let rx = {M:"", F:""}, sc = {M:"", F:""}, co = {M:"", F:""}, body = line;
+    const SC_TAG = /^(sc|scaled|降階|降階版)\s*[:：]?\s*/i;
+    const CO_TAG = /^(co|coach|教練|教練組)\s*[:：]?\s*/i;
     const groups = line.match(/[（(][^）)]*[）)]/g) || [];
     groups.forEach(g => {
       body = body.replace(g, " ");
       let inner = g.slice(1, -1).trim();
-      const scaled = /^(sc|scaled|降階|降階版)\s*[:：]?\s*/i.test(inner);
-      inner = inner.replace(/^(sc|scaled|降階|降階版)\s*[:：]?\s*/i, "").trim();
+      const tier = CO_TAG.test(inner) ? "co" : SC_TAG.test(inner) ? "sc" : "rx";
+      inner = inner.replace(CO_TAG, "").replace(SC_TAG, "").trim();
       const pair = inner.match(/M\s*([^\/、,]+)[\/、,]\s*F\s*(.+)/i);
       const val = pair ? {M:pair[1].trim(), F:pair[2].trim()} : {M:inner, F:inner};
-      if(scaled) sc = val; else rx = val;
+      if(tier === "co") co = val; else if(tier === "sc") sc = val; else rx = val;
     });
     body = body.trim();
     let name = body, qty = 0, unit = "下";
@@ -503,7 +507,7 @@ function parseWorkout(text){
     else { out.unknown.push(line); }
 
     out.stations.push({name:name.replace(/[,:：]\s*$/,""), qty, unit,
-                       rxM:rx.M, rxF:rx.F, scM:sc.M, scF:sc.F});
+                       rxM:rx.M, rxF:rx.F, scM:sc.M, scF:sc.F, coM:co.M, coF:co.F});
   });
   return out;
 }
@@ -563,6 +567,8 @@ function drawStations(){
       <td data-label="Rx 女"><input${li} data-i="${i}" data-k="rxF" value="${esc(s.rxF)}" placeholder="10kg"></td>
       <td data-label="降階 男"><input${li} data-i="${i}" data-k="scM" value="${esc(s.scM)}" placeholder="留空＝不分"></td>
       <td data-label="降階 女"><input${li} data-i="${i}" data-k="scF" value="${esc(s.scF)}" placeholder="留空＝不分"></td>
+      <td data-label="教練 男"><input${li} data-i="${i}" data-k="coM" value="${esc(s.coM || "")}" placeholder="留空＝不開"></td>
+      <td data-label="教練 女"><input${li} data-i="${i}" data-k="coF" value="${esc(s.coF || "")}" placeholder="留空＝不開"></td>
       <td class="rm"><button class="del" data-del="${i}" title="刪除這一站">×</button></td>
     </tr>`;
   }).join("");
@@ -577,13 +583,19 @@ function drawPreview(){
   $("pv-title").textContent = $("p-title").value || "（未命名）";
   $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
   $("pv-st").innerHTML = plan.stations.map((s,i) => {
-    const prow = (lab, mv, fv) => `<div class="pv-load">
-      ${lab ? `<span class="lv ${lab === "Rx" ? "rx" : "sc"}">${lab}</span>` : ""}
+    const prow = (cls, lab, mv, fv) => `<div class="pv-load">
+      ${lab ? `<span class="lv ${cls}">${lab}</span>` : ""}
       <span class="tag m"><b>男</b>${esc(mv)||"—"}</span>
       <span class="tag f"><b>女</b>${esc(fv)||"—"}</span></div>`;
-    const hasRx = s.rxM || s.rxF, hasSc = s.scM || s.scF;
-    const load = (hasRx && hasSc) ? prow("Rx", s.rxM, s.rxF) + prow("SC", s.scM, s.scF)
-               : hasRx ? prow("", s.rxM, s.rxF) : "";
+    const hasRx = s.rxM || s.rxF, hasSc = s.scM || s.scF, hasCo = s.coM || s.coF;
+    let load = "";
+    if(hasRx && (hasSc || hasCo)){
+      if(hasCo) load += prow("co", "教練", s.coM, s.coF);
+      load += prow("rx", "Rx", s.rxM, s.rxF);
+      if(hasSc) load += prow("sc", "SC", s.scM, s.scF);
+    }else if(hasRx){
+      load = prow("", "", s.rxM, s.rxF);
+    }
     return `<li><span class="pv-no">${i+1}</span>
       <span class="pv-name">${esc(s.name)}${load}</span>
       <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span></li>`;
@@ -730,7 +742,7 @@ $("del-yes").addEventListener("click", async () => {
 $("btn-parse").addEventListener("click", doParse);
 $("btn-add").addEventListener("click", () => {
   if(!plan) plan = {type:"fortime", rounds:1, cap:null, stations:[], unknown:[]};
-  plan.stations.push({name:"", qty:0, unit:"下", rxM:"", rxF:"", scM:"", scF:""});
+  plan.stations.push({name:"", qty:0, unit:"下", rxM:"", rxF:"", scM:"", scF:"", coM:"", coF:""});
   render();
 });
 $("st-body").addEventListener("input", e => {
@@ -769,8 +781,8 @@ $("p-month").addEventListener("input", () => {
 function buildPayload(){
   if(!plan || !plan.stations.length){ alert("還沒有課表內容，先貼上並解析。"); return null; }
   if(plan.stations.some(s => !s.name.trim() || !s.qty)){ alert("有站別的動作名稱或數量還沒填完整。"); return null; }
-  if(plan.stations.some(s => (s.scM || s.scF) && !(s.rxM || s.rxF))){
-    alert("有站別只填了降階重量卻沒填 Rx，補上 Rx 才能發布。"); return null;
+  if(plan.stations.some(s => (s.scM || s.scF || s.coM || s.coF) && !(s.rxM || s.rxF))){
+    alert("有站別填了降階或教練重量卻沒填 Rx，補上 Rx 才能發布。"); return null;
   }
   if(!$("p-month").value){ alert("請選月份。"); return null; }
   return {
@@ -918,7 +930,9 @@ function rcard(r){
       <div class="rc-f"><label>組別</label>${sel("sex", [["M","男子組"],["F","女子組"]], r.sex)}</div>
       <div class="rc-f"><label>年齡</label>
         <input class="t" data-row="${r.row}" data-f="age" value="${r.age || ""}" placeholder="—" inputmode="numeric"></div>
-      ${plan && plan.hasScaled ? `<div class="rc-f"><label>強度</label>${sel("div", [["rx","Rx 標準"],["sc","Scaled 降階"]], r.div)}</div>` : ""}
+      ${plan && (plan.hasScaled || plan.hasCoach) ? `<div class="rc-f"><label>強度</label>${
+          sel("div", [].concat(plan.hasCoach ? [["co","教練組"]] : [], [["rx","Rx 標準"]],
+                               plan.hasScaled ? [["sc","Scaled 降階"]] : []), r.div)}</div>` : ""}
       <div class="rc-f"><label>結果</label>${sel("done", [["1","時間內完賽"],["0","未完賽 (CAP)"]], r.done ? "1" : "0")}</div>
       ${score}
     </div>
@@ -1000,7 +1014,8 @@ $("r-reload").addEventListener("click", loadResults);
 $("r-export").addEventListener("click", () => {
   const head = ["姓名","手機","年齡","組別","強度","完賽","成績","輪數","站別","該站數量","心得","狀態"];
   const lines = [head.join(",")].concat(RESULTS.map(r => [
-    r.name, r.phone, r.age || "", r.sex === "M" ? "男" : "女", r.div === "sc" ? "Scaled" : "Rx",
+    r.name, r.phone, r.age || "", r.sex === "M" ? "男" : "女",
+    r.div === "co" ? "教練" : r.div === "sc" ? "Scaled" : "Rx",
     r.done ? "是" : "否", r.done ? mmss(r.sec) : "",
     r.done ? "" : r.rounds, r.done ? "" : (r.st + 1), r.done ? "" : r.part,
     '"' + String(r.note).replace(/"/g,'""') + '"', r.status

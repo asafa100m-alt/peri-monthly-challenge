@@ -136,6 +136,7 @@
   }
   .st-load .lv.rx{color:#FFFFFF;background:#1F1A16;}
   .st-load .lv.sc{color:#6B4A2F;background:#EADDCB;}
+  .st-load .lv.co{color:#FFFFFF;background:#12518C;}   /* 教練組：跟教練名字同一個藍 */
   .st-load.dim{opacity:.4;}                                      /* 不是你選的強度就整排淡掉 */
 
   /* 排行榜上的強度標記 */
@@ -146,6 +147,7 @@
   }
   .divtag.rx{color:#FFFFFF;background:#1F1A16;}   /* 標準：實心深色 */
   .divtag.sc{color:#6B4A2F;background:#EADDCB;}   /* 降階：淺灰 */
+  .divtag.co{color:#FFFFFF;background:#12518C;}   /* 教練組：深藍 */
 
   .board-note{margin:14px 0 0;font-size:13px;color:var(--muted);line-height:1.6;}
 
@@ -214,6 +216,7 @@
     cursor:pointer;font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--muted);
   }
   .seg button+button{border-left:0;}
+  .seg.three button{font-size:14px;letter-spacing:.01em;padding:10px 2px;}   /* 三選一時才夠塞 */
   .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
 
   .preview{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 14px;}
@@ -501,7 +504,7 @@ let MONTHS = [];
 let monthId = null;
 let sex = "M";
 let formSex = "M";
-let formDiv = "rx";              // Rx 或 sc（降階）
+let formDiv = "rx";              // rx 標準 / sc 降階 / co 教練組
 let formDone = true;
 let myPid = null;
 let busy = false;
@@ -586,7 +589,7 @@ function banner(html, bad){
 // 未完賽的三層比較：輪數 → 停在第幾站 → 該站完成量。
 // 各站單位不同（下 / 公尺 / cal），但只有同站才互比，所以不需要換算。
 // Rx 一律排在 Scaled 之前，這是 CrossFit 的慣例
-const divTier = r => (r.div === "sc" ? 1 : 0);
+const divTier = r => (r.div === "co" ? 0 : r.div === "sc" ? 2 : 1);   // 重的排前面：教練 → Rx → 降階
 
 function cmpProgress(a,b){
   const ka = [a.rounds,a.st,a.part], kb = [b.rounds,b.st,b.part];
@@ -687,16 +690,18 @@ function drawBoard(){
   $("board-note").hidden = !m.note;          // 沒寫說明就不要留空段落
 
   $("stations").innerHTML = m.stations.map((s,i) => {
-    const row = (label, mv, fv, on) => `<div class="st-load ${on ? "" : "dim"}">
-        ${label ? `<span class="lv ${label === "Rx" ? "rx" : "sc"}">${label}</span>` : ""}
+    const row = (cls, label, mv, fv, on) => `<div class="st-load ${on ? "" : "dim"}">
+        ${label ? `<span class="lv ${cls}">${label}</span>` : ""}
         <span class="tag m ${formSex==='M'?'':'off'}"><b>男</b>${esc(mv)||"—"}</span>
         <span class="tag f ${formSex==='F'?'':'off'}"><b>女</b>${esc(fv)||"—"}</span></div>`;
-    const hasRx = s.rxM || s.rxF, hasSc = s.scM || s.scF;
+    const hasRx = s.rxM || s.rxF, hasSc = s.scM || s.scF, hasCo = s.coM || s.coF;
     let load = "";
-    if(hasRx && hasSc){                       // 兩種都有：標出 Rx / SC，你選的那排亮著
-      load = row("Rx", s.rxM, s.rxF, formDiv === "rx") + row("SC", s.scM, s.scF, formDiv === "sc");
+    if(hasRx && (hasSc || hasCo)){            // 不只一種：標出層級，你選的那排亮著
+      if(hasCo) load += row("co", "教練", s.coM, s.coF, formDiv === "co");
+      load += row("rx", "Rx", s.rxM, s.rxF, formDiv === "rx");
+      if(hasSc) load += row("sc", "SC", s.scM, s.scF, formDiv === "sc");
     }else if(hasRx){
-      load = row("", s.rxM, s.rxF, true);     // 只有一種重量就不用標
+      load = row("", "", s.rxM, s.rxF, true);   // 只有一種重量就不用標
     }
     return `<li style="--i:${i}">
       <span class="st-no">${i+1}</span>
@@ -748,7 +753,10 @@ function drawLeaderboard(){
       <span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span>
       <span class="who">
         <span class="name${r.coach ? ' coach' : ''}">${esc(r.name)}<em>${esc(r.tail)}</em>${
-          m.hasScaled ? `<span class="divtag ${r.div === "sc" ? "sc" : "rx"}">${r.div === "sc" ? "SC" : "Rx"}</span>` : ""
+          (m.hasScaled || m.hasCoach)
+            ? `<span class="divtag ${r.div === "co" ? "co" : r.div === "sc" ? "sc" : "rx"}">${
+                 r.div === "co" ? "教練" : r.div === "sc" ? "SC" : "Rx"}</span>`
+            : ""
         }</span>
         ${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}
       </span>
@@ -777,6 +785,8 @@ function drawSubmit(){
     return;
   }
   sum.textContent = "交成績";
+  // 上個月選了教練組或降階，這個月可能沒開那一層，先拉回 Rx 免得送出的是不存在的強度
+  if((formDiv === "co" && !m.hasCoach) || (formDiv === "sc" && !m.hasScaled)) formDiv = "rx";
   const stOpts = m.stations.map((s,i) => `<option value="${i}">${i+1}. ${esc(s.name)}</option>`).join("");
   const progressFields = `
     <div class="field"><label for="f-rounds">完成輪數</label>
@@ -817,10 +827,11 @@ function drawSubmit(){
           <button type="button" data-sex="F" aria-pressed="${formSex==='F'}">女子組</button>
         </div>
       </div>
-      ${m.hasScaled ? `<div class="field full"><label>強度</label>
-        <div class="seg" id="f-div">
+      ${(m.hasScaled || m.hasCoach) ? `<div class="field full"><label>強度</label>
+        <div class="seg${m.hasCoach && m.hasScaled ? " three" : ""}" id="f-div">
+          ${m.hasCoach ? `<button type="button" data-div="co" aria-pressed="${formDiv==='co'}">教練組</button>` : ""}
           <button type="button" data-div="rx" aria-pressed="${formDiv==='rx'}">Rx 標準</button>
-          <button type="button" data-div="sc" aria-pressed="${formDiv==='sc'}">Scaled 降階</button>
+          ${m.hasScaled ? `<button type="button" data-div="sc" aria-pressed="${formDiv==='sc'}">Scaled 降階</button>` : ""}
         </div>
       </div>` : ""}
       ${resultToggle}
