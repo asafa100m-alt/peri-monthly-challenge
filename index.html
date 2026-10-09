@@ -199,6 +199,7 @@
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .field{flex:1 1 150px;min-width:0;margin-bottom:13px;}
   .field.full{flex:1 1 100%;}
+  .field.sm{flex:0 1 120px;}
   label{display:block;font-size:12px;color:var(--muted);letter-spacing:.04em;margin-bottom:5px;}
   input,select,textarea{
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
@@ -806,6 +807,10 @@ function drawSubmit(){
         <div class="field"><label for="f-phone">手機號碼</label>
           <input id="f-phone" placeholder="0912345678" inputmode="numeric" autocomplete="tel" required></div>
       </div>
+      <div class="row">
+        <div class="field sm"><label for="f-age">年齡</label>
+          <input id="f-age" type="number" min="8" max="99" placeholder="34" inputmode="numeric" required></div>
+      </div>
       <div class="field full"><label>組別</label>
         <div class="seg" id="f-sex">
           <button type="button" data-sex="M" aria-pressed="${formSex==='M'}">男子組</button>
@@ -831,6 +836,7 @@ function drawSubmit(){
   try{
     $("f-name").value  = localStorage.getItem("peri.name")  || "";
     $("f-phone").value = localStorage.getItem("peri.phone") || "";
+    $("f-age").value   = localStorage.getItem("peri.age")   || "";
   }catch(e){}
 
   $("f-sex").addEventListener("click", e => {
@@ -847,10 +853,11 @@ function drawSubmit(){
   });
   if($("f-done")) $("f-done").addEventListener("click", e => {
     const b = e.target.closest("button[data-done]"); if(!b) return;
-    const keep = {n:$("f-name").value, p:$("f-phone").value, t:$("f-note").value};
+    const keep = {n:$("f-name").value, p:$("f-phone").value, a:$("f-age").value, t:$("f-note").value};
     formDone = b.dataset.done === "1";
     drawSubmit();
-    $("f-name").value = keep.n; $("f-phone").value = keep.p; $("f-note").value = keep.t;
+    $("f-name").value = keep.n; $("f-phone").value = keep.p;
+    $("f-age").value = keep.a;  $("f-note").value = keep.t;
     updatePreview();
   });
   $("form").addEventListener("input", updatePreview);
@@ -864,6 +871,7 @@ function readForm(){
   const r = {
     name:($("f-name").value||"").trim(),
     phone:($("f-phone").value||"").replace(/\D/g,""),
+    age:+$("f-age").value||0,
     sex:formSex,
     div:formDiv,
     note:($("f-note").value||"").trim()
@@ -895,6 +903,7 @@ async function onSubmit(e){
   if(busy) return;
   const m = cur(), r = readForm();
   if(!r.name || r.phone.length < 9) return alert("請填寫姓名與完整手機號碼。");
+  if(!(r.age >= 8 && r.age <= 99))   return alert("請填寫年齡（8 到 99）。");
   if(!isDnf(r) && r.sec <= 0)        return alert("請填寫完成時間。");
   if(!isDnf(r) && r.sec > m.cap)     return alert(`超過時間上限 ${mmss(m.cap)}，請改選「未完賽 (CAP)」並填寫做到哪裡。`);
   if(isDnf(r) && !r.rounds && !r.part) return alert("請填寫做到第幾輪。");
@@ -902,6 +911,7 @@ async function onSubmit(e){
   try{
     localStorage.setItem("peri.name", r.name);
     localStorage.setItem("peri.phone", r.phone);
+    localStorage.setItem("peri.age", String(r.age));
   }catch(err){}
 
   const btn = $("f-submit");

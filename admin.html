@@ -916,6 +916,8 @@ function rcard(r){
     </div>
     <div class="rc-fields">
       <div class="rc-f"><label>組別</label>${sel("sex", [["M","男子組"],["F","女子組"]], r.sex)}</div>
+      <div class="rc-f"><label>年齡</label>
+        <input class="t" data-row="${r.row}" data-f="age" value="${r.age || ""}" placeholder="—" inputmode="numeric"></div>
       ${plan && plan.hasScaled ? `<div class="rc-f"><label>強度</label>${sel("div", [["rx","Rx 標準"],["sc","Scaled 降階"]], r.div)}</div>` : ""}
       <div class="rc-f"><label>結果</label>${sel("done", [["1","時間內完賽"],["0","未完賽 (CAP)"]], r.done ? "1" : "0")}</div>
       ${score}
@@ -976,6 +978,7 @@ $("r-list").addEventListener("change", e => {
   const row = +el.dataset.row, f = el.dataset.f;
   if(f === "sex")      return pushUpdate(row, {sex: el.value});
   if(f === "div")      return pushUpdate(row, {div: el.value});
+  if(f === "age")      return pushUpdate(row, {age: +el.value || 0});
   if(f === "done"){                                   // 切換形狀，先重畫欄位再送
     const r = RESULTS.find(x => x.row === row);
     if(r){ r.done = el.value === "1"; drawResults(); }
@@ -995,9 +998,9 @@ $("r-month").addEventListener("change", loadResults);
 $("r-reload").addEventListener("click", loadResults);
 
 $("r-export").addEventListener("click", () => {
-  const head = ["姓名","手機","組別","強度","完賽","成績","輪數","站別","該站數量","心得","狀態"];
+  const head = ["姓名","手機","年齡","組別","強度","完賽","成績","輪數","站別","該站數量","心得","狀態"];
   const lines = [head.join(",")].concat(RESULTS.map(r => [
-    r.name, r.phone, r.sex === "M" ? "男" : "女", r.div === "sc" ? "Scaled" : "Rx",
+    r.name, r.phone, r.age || "", r.sex === "M" ? "男" : "女", r.div === "sc" ? "Scaled" : "Rx",
     r.done ? "是" : "否", r.done ? mmss(r.sec) : "",
     r.done ? "" : r.rounds, r.done ? "" : (r.st + 1), r.done ? "" : r.part,
     '"' + String(r.note).replace(/"/g,'""') + '"', r.status
