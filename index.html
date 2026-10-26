@@ -476,8 +476,7 @@
     <h2 class="sec-head">我的歷程</h2>
     <div class="hist">
       <div class="row">
-        <div class="field"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
-        <div class="field sm"><label for="h-age">年齡</label><input id="h-age" type="number" min="8" max="99" placeholder="34" inputmode="numeric"></div>
+        <div class="field full"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
       </div>
       <button class="btn-lookup" id="h-go" type="button">查詢</button>
       <ul class="hist-rows" id="hist"></ul>
@@ -929,7 +928,7 @@ async function onSubmit(e){
       await reload();
     }else{
       // 示範模式：只改本機資料，不會真的存起來
-      r.pid = demoPid(r.name, r.age);
+      r.pid = demoPid(r.name);
       const i = m.results.findIndex(x => x.pid === r.pid);
       if(i >= 0) m.results[i] = r; else m.results.push(r);
       setPid(r.pid);
@@ -964,7 +963,7 @@ function setPid(p){
 
 function drawHistory(){
   if(!myPid){
-    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名與年齡，就能看到自己每個月的成績與名次。</li>`;
+    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名，就能看到自己每個月的成績與名次。</li>`;
     return;
   }
   const rows = [];
@@ -976,7 +975,7 @@ function drawHistory(){
   });
   if(!rows.length){
     $("hist").innerHTML =
-      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名與年齡是否與交成績時填的一致。</li>`;
+      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名是否與交成績時填的一致。</li>`;
     return;
   }
   const most = Math.max(...rows.map(r => r.of));
@@ -992,23 +991,22 @@ function drawHistory(){
 }
 
 async function lookup(){
-  const name = $("h-name").value.trim(), age = +$("h-age").value || 0;
+  const name = $("h-name").value.trim();
   if(!name) return alert("請填寫姓名。");
-  if(!(age >= 8 && age <= 99)) return alert("請填寫年齡（8 到 99）。");
   try{
     if(LIVE){
-      const res = await api("identify", {name, age});
+      const res = await api("identify", {name});
       if(!res.ok) throw new Error(res.error || "查詢失敗");
       setPid(res.pid);
     }else{
-      setPid(demoPid(name, age));
+      setPid(demoPid(name));
     }
     drawHistory(); drawLeaderboard();
   }catch(err){
     alert("查詢失敗：" + err.message);
   }
 }
-const demoPid = (n,a) => "demo-" + n.replace(/\s+/g,"").toLowerCase() + "-" + a;
+const demoPid = n => "demo-" + n.replace(/\s+/g,"").toLowerCase();
 
 /* ---------------- 載入與重畫 ---------------- */
 
