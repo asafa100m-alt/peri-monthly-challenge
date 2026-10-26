@@ -477,7 +477,7 @@
     <div class="hist">
       <div class="row">
         <div class="field"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
-        <div class="field"><label for="h-phone">手機</label><input id="h-phone" placeholder="0912345678" inputmode="numeric" autocomplete="tel"></div>
+        <div class="field sm"><label for="h-age">年齡</label><input id="h-age" type="number" min="8" max="99" placeholder="34" inputmode="numeric"></div>
       </div>
       <button class="btn-lookup" id="h-go" type="button">查詢</button>
       <ul class="hist-rows" id="hist"></ul>
@@ -752,7 +752,7 @@ function drawLeaderboard(){
     <li style="--i:${i}" class="${isDnf(r) && m.type==='fortime' ? 'dnf' : ''} ${myPid && r.pid===myPid ? 'me' : ''}">
       <span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span>
       <span class="who">
-        <span class="name${r.coach ? ' coach' : ''}">${esc(r.name)}<em>${esc(r.tail)}</em>${
+        <span class="name${r.coach ? ' coach' : ''}">${esc(r.name)}${
           (m.hasScaled || m.hasCoach)
             ? `<span class="divtag ${r.div === "co" ? "co" : r.div === "sc" ? "sc" : "rx"}">${
                  r.div === "co" ? "教練" : r.div === "sc" ? "SC" : "Rx"}</span>`
@@ -814,10 +814,6 @@ function drawSubmit(){
       <div class="row">
         <div class="field"><label for="f-name">姓名</label>
           <input id="f-name" placeholder="王小明" autocomplete="name" required></div>
-        <div class="field"><label for="f-phone">手機號碼</label>
-          <input id="f-phone" placeholder="0912345678" inputmode="numeric" autocomplete="tel" required></div>
-      </div>
-      <div class="row">
         <div class="field sm"><label for="f-age">年齡</label>
           <input id="f-age" type="number" min="8" max="99" placeholder="34" inputmode="numeric" required></div>
       </div>
@@ -840,14 +836,13 @@ function drawSubmit(){
       <div class="field full"><label for="f-note">完賽心得（選填，會顯示在排行榜）</label>
         <textarea id="f-note" maxlength="40" placeholder="例：前兩輪衝太快，後面付出代價"></textarea></div>
       <button class="submit" type="submit" id="f-submit">送出成績</button>
-      <p class="hint">送出後要等教練確認才會上榜。榜上只顯示姓名與末四碼，同一個月重複交以最新一次為準。</p>
+      <p class="hint">送出後要等教練確認才會上榜。榜上只顯示姓名，同一個月重複交以最新一次為準。</p>
     </form>`;
 
-  // 記住上次填的姓名與手機，省得每個月重打
+  // 記住上次填的姓名與年齡，省得每個月重打
   try{
-    $("f-name").value  = localStorage.getItem("peri.name")  || "";
-    $("f-phone").value = localStorage.getItem("peri.phone") || "";
-    $("f-age").value   = localStorage.getItem("peri.age")   || "";
+    $("f-name").value = localStorage.getItem("peri.name") || "";
+    $("f-age").value  = localStorage.getItem("peri.age")  || "";
   }catch(e){}
 
   $("f-sex").addEventListener("click", e => {
@@ -864,11 +859,10 @@ function drawSubmit(){
   });
   if($("f-done")) $("f-done").addEventListener("click", e => {
     const b = e.target.closest("button[data-done]"); if(!b) return;
-    const keep = {n:$("f-name").value, p:$("f-phone").value, a:$("f-age").value, t:$("f-note").value};
+    const keep = {n:$("f-name").value, a:$("f-age").value, t:$("f-note").value};
     formDone = b.dataset.done === "1";
     drawSubmit();
-    $("f-name").value = keep.n; $("f-phone").value = keep.p;
-    $("f-age").value = keep.a;  $("f-note").value = keep.t;
+    $("f-name").value = keep.n; $("f-age").value = keep.a; $("f-note").value = keep.t;
     updatePreview();
   });
   $("form").addEventListener("input", updatePreview);
@@ -881,7 +875,6 @@ function readForm(){
   const m = cur();
   const r = {
     name:($("f-name").value||"").trim(),
-    phone:($("f-phone").value||"").replace(/\D/g,""),
     age:+$("f-age").value||0,
     sex:formSex,
     div:formDiv,
@@ -913,15 +906,14 @@ async function onSubmit(e){
   e.preventDefault();
   if(busy) return;
   const m = cur(), r = readForm();
-  if(!r.name || r.phone.length < 9) return alert("請填寫姓名與完整手機號碼。");
-  if(!(r.age >= 8 && r.age <= 99))   return alert("請填寫年齡（8 到 99）。");
+  if(!r.name)                      return alert("請填寫姓名。");
+  if(!(r.age >= 8 && r.age <= 99)) return alert("請填寫年齡（8 到 99）。");
   if(!isDnf(r) && r.sec <= 0)        return alert("請填寫完成時間。");
   if(!isDnf(r) && r.sec > m.cap)     return alert(`超過時間上限 ${mmss(m.cap)}，請改選「未完賽 (CAP)」並填寫做到哪裡。`);
   if(isDnf(r) && !r.rounds && !r.part) return alert("請填寫做到第幾輪。");
 
   try{
     localStorage.setItem("peri.name", r.name);
-    localStorage.setItem("peri.phone", r.phone);
     localStorage.setItem("peri.age", String(r.age));
   }catch(err){}
 
@@ -937,8 +929,7 @@ async function onSubmit(e){
       await reload();
     }else{
       // 示範模式：只改本機資料，不會真的存起來
-      r.pid = demoPid(r.name, r.phone);
-      r.tail = r.phone.slice(-4);
+      r.pid = demoPid(r.name, r.age);
       const i = m.results.findIndex(x => x.pid === r.pid);
       if(i >= 0) m.results[i] = r; else m.results.push(r);
       setPid(r.pid);
@@ -973,7 +964,7 @@ function setPid(p){
 
 function drawHistory(){
   if(!myPid){
-    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名與手機，就能看到自己每個月的成績與名次。</li>`;
+    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名與年齡，就能看到自己每個月的成績與名次。</li>`;
     return;
   }
   const rows = [];
@@ -985,7 +976,7 @@ function drawHistory(){
   });
   if(!rows.length){
     $("hist").innerHTML =
-      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名與手機是否與交成績時填的一致。</li>`;
+      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名與年齡是否與交成績時填的一致。</li>`;
     return;
   }
   const most = Math.max(...rows.map(r => r.of));
@@ -1001,22 +992,23 @@ function drawHistory(){
 }
 
 async function lookup(){
-  const name = $("h-name").value.trim(), phone = $("h-phone").value.replace(/\D/g,"");
-  if(!name || phone.length < 9) return alert("請填寫姓名與完整手機號碼。");
+  const name = $("h-name").value.trim(), age = +$("h-age").value || 0;
+  if(!name) return alert("請填寫姓名。");
+  if(!(age >= 8 && age <= 99)) return alert("請填寫年齡（8 到 99）。");
   try{
     if(LIVE){
-      const res = await api("identify", {name, phone});
+      const res = await api("identify", {name, age});
       if(!res.ok) throw new Error(res.error || "查詢失敗");
       setPid(res.pid);
     }else{
-      setPid(demoPid(name, phone));
+      setPid(demoPid(name, age));
     }
     drawHistory(); drawLeaderboard();
   }catch(err){
     alert("查詢失敗：" + err.message);
   }
 }
-const demoPid = (n,p) => "demo-" + n.replace(/\s+/g,"") + "-" + p;
+const demoPid = (n,a) => "demo-" + n.replace(/\s+/g,"").toLowerCase() + "-" + a;
 
 /* ---------------- 載入與重畫 ---------------- */
 
@@ -1108,17 +1100,17 @@ const DEMO_MONTHS = [
       {name:"Burpee to plank",qty:12,  unit:"下", M:"", F:""}
     ],
     results:[
-      {pid:"d1", name:"陳柏宇", tail:"2244", sex:"M", sec:824,  note:"划船是唯一能喘口氣的地方"},
-      {pid:"d2", name:"王建成", tail:"7788", sex:"M", sec:901,  note:""},
-      {pid:"d3", name:"林俊傑", tail:"5678", sex:"M", sec:967,  note:"Snatch 換手節奏抓到了"},
-      {pid:"d4", name:"李承翰", tail:"5544", sex:"M", sec:1088, note:""},
-      {pid:"d5", name:"張哲瑋", tail:"4455", sex:"M", sec:1174, note:"前兩輪衝太快，後面付出代價"},
-      {pid:"d6", name:"吳孟軒", tail:"2333", sex:"M", rounds:3, st:1, part:180, note:"差一點點，下個月一定完賽"},
-      {pid:"d7", name:"許雅婷", tail:"8899", sex:"F", sec:938,  note:"10kg 剛剛好，下個月想試 12"},
-      {pid:"d8", name:"陳思妤", tail:"6655", sex:"F", sec:1022, note:""},
-      {pid:"d9", name:"黃筱晴", tail:"3322", sex:"F", sec:1163, note:"最後一輪 burpee 全靠意志力"},
-      {pid:"d10",name:"劉宜蓁", tail:"6677", sex:"F", rounds:3, st:2, part:7,   note:"卡在最後七下"},
-      {pid:"d11",name:"蔡宛儒", tail:"2233", sex:"F", rounds:2, st:1, part:240, note:"第一次挑戰，先求把動作做對"}
+      {pid:"d1", name:"陳柏宇", sex:"M", sec:824,  note:"划船是唯一能喘口氣的地方"},
+      {pid:"d2", name:"王建成", sex:"M", sec:901,  note:""},
+      {pid:"d3", name:"林俊傑", sex:"M", sec:967,  note:"Snatch 換手節奏抓到了"},
+      {pid:"d4", name:"李承翰", sex:"M", sec:1088, note:""},
+      {pid:"d5", name:"張哲瑋", sex:"M", sec:1174, note:"前兩輪衝太快，後面付出代價"},
+      {pid:"d6", name:"吳孟軒", sex:"M", rounds:3, st:1, part:180, note:"差一點點，下個月一定完賽"},
+      {pid:"d7", name:"許雅婷", sex:"F", sec:938,  note:"10kg 剛剛好，下個月想試 12"},
+      {pid:"d8", name:"陳思妤", sex:"F", sec:1022, note:""},
+      {pid:"d9", name:"黃筱晴", sex:"F", sec:1163, note:"最後一輪 burpee 全靠意志力"},
+      {pid:"d10",name:"劉宜蓁", sex:"F", rounds:3, st:2, part:7,   note:"卡在最後七下"},
+      {pid:"d11",name:"蔡宛儒", sex:"F", rounds:2, st:1, part:240, note:"第一次挑戰，先求把動作做對"}
     ]
   },
   {
@@ -1131,15 +1123,15 @@ const DEMO_MONTHS = [
       {name:"Ring Row",  qty:12, unit:"下", M:"", F:""}
     ],
     results:[
-      {pid:"d1", name:"陳柏宇", tail:"2244", sex:"M", sec:882,  note:"最後一輪掉速"},
-      {pid:"d2", name:"王建成", tail:"7788", sex:"M", sec:915,  note:""},
-      {pid:"d3", name:"林俊傑", tail:"5678", sex:"M", sec:1027, note:"Box jump 保守了點"},
-      {pid:"d4", name:"李承翰", tail:"5544", sex:"M", sec:1104, note:""},
-      {pid:"d5", name:"張哲瑋", tail:"4455", sex:"M", rounds:4, st:2, part:5, note:""},
-      {pid:"d8", name:"陳思妤", tail:"6655", sex:"F", sec:1008, note:"Wall ball 終於不用停"},
-      {pid:"d7", name:"許雅婷", tail:"8899", sex:"F", sec:1041, note:""},
-      {pid:"d9", name:"黃筱晴", tail:"3322", sex:"F", sec:1195, note:""},
-      {pid:"d10",name:"劉宜蓁", tail:"6677", sex:"F", rounds:4, st:1, part:9, note:"卡在 box jump"}
+      {pid:"d1", name:"陳柏宇", sex:"M", sec:882,  note:"最後一輪掉速"},
+      {pid:"d2", name:"王建成", sex:"M", sec:915,  note:""},
+      {pid:"d3", name:"林俊傑", sex:"M", sec:1027, note:"Box jump 保守了點"},
+      {pid:"d4", name:"李承翰", sex:"M", sec:1104, note:""},
+      {pid:"d5", name:"張哲瑋", sex:"M", rounds:4, st:2, part:5, note:""},
+      {pid:"d8", name:"陳思妤", sex:"F", sec:1008, note:"Wall ball 終於不用停"},
+      {pid:"d7", name:"許雅婷", sex:"F", sec:1041, note:""},
+      {pid:"d9", name:"黃筱晴", sex:"F", sec:1195, note:""},
+      {pid:"d10",name:"劉宜蓁", sex:"F", rounds:4, st:1, part:9, note:"卡在 box jump"}
     ]
   }
 ];
