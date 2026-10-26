@@ -193,10 +193,6 @@
   .chips .none{color:var(--muted-2);font-size:13px;}
 
   /* 登入 */
-  .gate{max-width:340px;margin:16vh auto 0;text-align:center;}
-  .gate .mark{display:inline-block;} .gate .mark-rule{margin:5px auto 0;}
-  .gate h1{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.05em;margin:18px 0 6px;}
-  .gate p{color:var(--muted-2);font-size:13px;margin:0 0 18px;}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
   /* 窄螢幕：表格擠不下，改成一站一張卡 */
   @media (max-width:640px){
@@ -222,24 +218,14 @@
   }
 </style>
 
-<!-- ============ 登入 ============ -->
-<div id="gate" class="gate">
-  <div class="mark"><b>PERI</b><span>TRAINING</span><div class="mark-rule"></div></div>
-  <h1>教練後台</h1>
-  <p id="gate-hint">密碼設定在試算表「設定」分頁的〈管理密碼〉那一列</p>
-  <form id="gate-form">
-    <input id="pw" type="password" placeholder="管理密碼" autocomplete="current-password" style="text-align:center">
-    <button class="btn wide" style="margin-top:12px" type="submit">登入</button>
-  </form>
-</div>
-
 <!-- ============ 後台 ============ -->
-<div id="app" hidden>
+<!-- 這一頁沒有登入關卡，是刻意的（林先生 2026-10-12 指定）。 -->
+<div id="app">
   <header class="topbar">
     <div class="topbar-in">
       <div><div class="mark"><b>PERI</b><span>TRAINING</span></div><div class="mark-rule"></div></div>
       <span class="badge">教練後台</span>
-      <span class="who-out">已登入 · 每月小挑戰</span>
+      <span class="who-out">每月小挑戰</span>
     </div>
   </header>
 
@@ -385,7 +371,6 @@ const esc = s => String(s == null ? "" : s)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const mmss = s => Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
 
-let PW = "";            // 登入後保留在記憶體，關掉分頁就消失
 let PLANS = [];         // 後台讀回來的所有月份
 let RESULTS = [];       // 目前月份的成績
 let plan = null;        // 正在編輯的課表
@@ -414,7 +399,7 @@ async function api(action, payload){
   if(!LIVE) throw new Error("示範模式：還沒填入後台網址");
   return fetchJSON(API_URL, {
     method:"POST",
-    body: JSON.stringify(Object.assign({action, pw:PW}, payload || {}))
+    body: JSON.stringify(Object.assign({action}, payload || {}))
   });
 }
 function banner(html, bad){
@@ -424,30 +409,10 @@ function banner(html, bad){
 }
 
 /* ==========================================================================
-   登入
+   進入後台（沒有登入關卡，開頁就直接載入）
    ========================================================================== */
 
-$("gate-form").addEventListener("submit", async e => {
-  e.preventDefault();
-  const pw = $("pw").value.trim();
-  if(!pw) return;
-  if(!LIVE){
-    if(pw.toLowerCase() !== "peri") return alert("示範模式的密碼是 peri");
-    enter(true);
-    return;
-  }
-  try{
-    const res = await api("adminLogin", {pw});
-    if(!res.ok) return alert("密碼不正確。");
-    PW = pw;
-    enter(false);
-  }catch(err){
-    alert("連不上後台：" + err.message + "\n\n請確認 API_URL 已填入且部署權限是「任何人」。");
-  }
-});
-
 async function enter(demo){
-  $("gate").hidden = true; $("app").hidden = false;
   if(!$("p-month").value){ $("p-month").value = thisMonth(); syncDates(); }
   if(demo){
     PLANS = DEMO_PLANS;
@@ -1060,5 +1025,11 @@ const DEMO_RESULTS = [
   {row:7, name:"許雅婷", phone:"0966778899", sex:"F", done:true,  sec:938,  rounds:0, st:0, part:0, note:"10kg 剛剛好", status:"有效"},
   {row:8, name:"劉宜蓁", phone:"0932556677", sex:"F", done:false, sec:0, rounds:3, st:2, part:7, note:"卡在最後七下", status:"有效"}
 ];
-if(!LIVE){ RESULTS = DEMO_RESULTS; $("gate-hint").textContent = "示範模式：密碼輸入 peri 即可進入"; }
+if(!LIVE) RESULTS = DEMO_RESULTS;
+
+// 沒有登入關卡，載入完就直接把資料拉進來
+enter(!LIVE).catch(err => {
+  banner("<b>連不上後台</b> —— " + esc(err.message) +
+         "。請確認 Apps Script 已部署為網頁應用程式、存取權限是「任何人」。", true);
+});
 </script>
