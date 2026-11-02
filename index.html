@@ -640,7 +640,7 @@ function rankNumbers(m,list){
 /* ---------------- 成績顯示 ---------------- */
 
 function mmss(sec){ return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0"); }
-function unitOf(u){ return u==="m" ? "m" : u==="cal" ? "cal" : ""; }
+function unitOf(u){ return u==="m" ? "m" : u==="cal" ? "cal" : u==="秒" ? " 秒" : ""; }
 function progress(m,r){
   if(!r.part) return r.rounds + " 輪整";
   const st = m.stations[r.st] || {name:"最後一站", unit:"下"};
@@ -1060,7 +1060,9 @@ function drawHistory(){
   const most = Math.max(...rows.map(r => r.of));
   $("hist").innerHTML = rows.map((r,i) => {
     const pct = Math.max(22, Math.round((r.of - r.rank + 1) / most * 100));   // 名次越前，長條越長
-    const label = r.m.type==="fortime" && !isDnf(r.mine) ? mmss(r.mine.sec) : scoreSub(r.m, r.mine);
+    const label = r.m.type==="points" ? (r.mine.score || 0) + " 分"
+                : r.m.type==="fortime" && !isDnf(r.mine) ? mmss(r.mine.sec)
+                : scoreSub(r.m, r.mine);
     return `<li>
       <span class="h-month">${esc(r.m.label)}</span>
       <span class="h-track"><span class="h-fill" style="width:${pct}%;--i:${i}"><b>${label}</b></span></span>

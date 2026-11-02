@@ -575,7 +575,7 @@ function drawPreview(){
     }
     return `<li><span class="pv-no">${i+1}</span>
       <span class="pv-name">${esc(s.name)}${load}</span>
-      <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":""}</span></li>`;
+      <span class="pv-qty">${s.qty}${s.unit==="m"?"m":s.unit==="cal"?"cal":s.unit==="秒"?" 秒":""}</span></li>`;
   }).join("");
   const note = $("p-note").value.trim();
   $("pv-note").textContent = note;
