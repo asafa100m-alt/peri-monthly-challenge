@@ -119,6 +119,7 @@
     font-family:var(--display);font-size:22px;font-weight:700;line-height:1;
     flex:0 0 auto;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;
   }
+  .st-std{font-size:12.5px;color:var(--muted);margin-top:3px;}
   .st-load{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
   .st-load .tag{
     display:inline-flex;align-items:baseline;gap:5px;
@@ -217,6 +218,16 @@
   }
   .seg button+button{border-left:0;}
   .seg.three button{font-size:14px;letter-spacing:.01em;padding:10px 2px;}   /* 三選一時才夠塞 */
+
+  /* 計分制：每一站一列，右邊選教練喊了幾次失敗 */
+  .ptlist{display:flex;flex-direction:column;gap:10px;}
+  .ptrow{display:grid;grid-template-columns:20px 1fr;gap:8px 10px;align-items:baseline;}
+  .pt-no{font-family:var(--display);font-size:14px;font-weight:700;color:var(--muted-2);}
+  .pt-name{font-size:15px;}
+  .pt-name em{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .pt-seg{grid-column:2;}
+  .pt-seg button{font-size:13px;letter-spacing:0;padding:8px 2px;}
+  .pt-seg button[data-f="3"][aria-pressed="true"]{background:#C0392B;border-color:#C0392B;}
   .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
 
   .preview{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 14px;}
@@ -476,7 +487,8 @@
     <h2 class="sec-head">我的歷程</h2>
     <div class="hist">
       <div class="row">
-        <div class="field full"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
+        <div class="field"><label for="h-name">姓名</label><input id="h-name" placeholder="王小明" autocomplete="name"></div>
+        <div class="field sm"><label for="h-birth">出生西元年</label><input id="h-birth" type="number" min="1900" max="2099" placeholder="選填" inputmode="numeric"></div>
       </div>
       <button class="btn-lookup" id="h-go" type="button">查詢</button>
       <ul class="hist-rows" id="hist"></ul>
@@ -505,10 +517,12 @@ let sex = "M";
 let formSex = "M";
 let formDiv = "rx";              // rx 標準 / sc 降階 / co 教練組
 let formDone = true;
-let myPid = null;
+let formFails = [];              // 計分制：各站教練喊失敗的次數
+let myPids = [];                 // 可能有兩組：有出生年的新紀錄、沒有的舊紀錄
 let busy = false;
 
-try { myPid = localStorage.getItem("peri.pid"); } catch(e) {}
+try { myPids = JSON.parse(localStorage.getItem("peri.pids") || "[]"); } catch(e) { myPids = []; }
+const isMe = r => r && myPids.indexOf(r.pid) >= 0;
 
 const cur = () => MONTHS.find(m => m.id === monthId) || MONTHS[0];
 const isDnf = r => r.sec == null;
@@ -600,10 +614,27 @@ function cmpFortime(a,b){
   if(!isDnf(a)) return a.sec - b.sec;                   // 都完賽：比誰快
   return cmpProgress(a,b);                              // 都未完賽：比誰做得多
 }
+const totalFails = r => (r.fails || []).reduce((n,f) => n + f, 0);
+// 計分制：分數高的在前；同分再比教練喊失敗的總次數，少的在前
+function cmpPoints(a,b){
+  if((b.score||0) !== (a.score||0)) return (b.score||0) - (a.score||0);
+  return totalFails(a) - totalFails(b);
+}
 function ranked(m,sx){
-  const inner = m.type === "fortime" ? cmpFortime : cmpProgress;
+  const inner = m.type === "points" ? cmpPoints : m.type === "fortime" ? cmpFortime : cmpProgress;
   return m.results.filter(r => r.sex===sx)
     .sort((a,b) => (divTier(a) - divTier(b)) || inner(a,b));
+}
+// 計分制會有一堆同分，名次要併排（1,1,1,4）而不是硬編 1,2,3,4
+function rankNumbers(m,list){
+  if(m.type !== "points") return list.map((r,i) => i+1);
+  const key = r => divTier(r) + "|" + (r.score||0) + "|" + totalFails(r);
+  let last = null, lastRank = 0;
+  return list.map((r,i) => {
+    const k = key(r);
+    if(k !== last){ last = k; lastRank = i + 1; }
+    return lastRank;
+  });
 }
 
 /* ---------------- 成績顯示 ---------------- */
@@ -616,10 +647,16 @@ function progress(m,r){
   return r.rounds + " 輪 + " + st.name + " " + r.part + (st.unit==="下" ? "下" : st.unit);
 }
 function scoreMain(m,r){
+  if(m.type==="points")  return (r.score || 0) + "";
   if(m.type==="fortime") return isDnf(r) ? "CAP" : mmss(r.sec);
   return r.rounds + (r.part ? "+" : "");
 }
 function scoreSub(m,r){
+  if(m.type==="points"){
+    const n = (r.fails || []).filter(f => f < 3).length;
+    const tf = totalFails(r);
+    return n + "/" + (m.stations.length || 4) + " 站" + (tf ? "　失誤 " + tf : "");
+  }
   if(m.type==="fortime") return isDnf(r) ? progress(m,r) : "完賽";
   return progress(m,r);
 }
@@ -676,13 +713,16 @@ function drawMonths(){
 
 function drawBoard(){
   const m = cur();
-  $("board-kind").textContent = m.type === "amrap"
-    ? "AMRAP · " + Math.round(m.cap/60) + " 分鐘"
+  const per = m.stations.length ? Math.round(100 / m.stations.length) : 0;
+  $("board-kind").textContent =
+      m.type === "points" ? m.stations.length + " 站計分 · 滿分 100"
+    : m.type === "amrap"  ? "AMRAP · " + Math.round(m.cap/60) + " 分鐘"
     : m.rounds + " ROUND FOR TIME";
   $("board-title").textContent = m.title;
-  $("board-cap").innerHTML =
-    `<span class="k">${m.type === "amrap" ? "限時" : "時間上限"}</span>` +
-    `<span class="v" data-n="${m.cap}" data-fmt="mmss">${mmss(m.cap)}</span>`;
+  $("board-cap").innerHTML = m.type === "points"
+    ? `<span class="k">每站</span><span class="v" data-n="${per}" data-suf=" 分">${per} 分</span>`
+    : `<span class="k">${m.type === "amrap" ? "限時" : "時間上限"}</span>` +
+      `<span class="v" data-n="${m.cap}" data-fmt="mmss">${mmss(m.cap)}</span>`;
   $("board-window").textContent =
     [m.window + " 開放提交", m.isOpen ? "" : "已截止"].filter(Boolean).join("　·　");
   $("board-note").textContent = m.note;
@@ -702,9 +742,10 @@ function drawBoard(){
     }else if(hasRx){
       load = row("", "", s.rxM, s.rxF, true);   // 只有一種重量就不用標
     }
+    const std = s.std ? `<div class="st-std">${esc(s.std)}</div>` : "";
     return `<li style="--i:${i}">
       <span class="st-no">${i+1}</span>
-      <span class="st-name">${esc(s.name)}${load}</span>
+      <span class="st-name">${esc(s.name)}${std}${load}</span>
       <span class="st-qty">${s.qty}${unitOf(s.unit)}</span>
     </li>`;
   }).join("");
@@ -722,7 +763,10 @@ function drawStats(){
   if(!all.length){ $("stats").textContent = "還沒有人挑戰，你可以是第一個。"; return; }
   const n = (v, fmt, suf) => `<i data-n="${v}"${fmt ? ` data-fmt="${fmt}"` : ""}${suf ? ` data-suf="${suf}"` : ""}></i>`;
   const parts = ["挑戰人數 <b>" + n(all.length) + "</b> 人"];
-  if(m.type === "fortime"){
+  if(m.type === "points"){
+    parts.push("平均 " + n(Math.round(all.reduce((s,r) => s + (r.score||0), 0) / all.length), "", " 分"));
+    parts.push("滿分 " + n(all.filter(r => (r.score||0) >= 100).length, "", " 人"));
+  }else if(m.type === "fortime"){
     const fin = all.filter(r => !isDnf(r));
     parts.push("完賽率 " + n(Math.round(fin.length / all.length * 100), "", "%"));
     if(fin.length) parts.push("平均 " + n(Math.round(fin.reduce((s,r) => s + r.sec, 0) / fin.length), "mmss"));
@@ -744,12 +788,12 @@ function drawTabs(){
 }
 
 function drawLeaderboard(){
-  const m = cur(), list = ranked(m,sex);
+  const m = cur(), list = ranked(m,sex), rn = rankNumbers(m,list);
   const fresh = document.createElement("ol");
   fresh.className = "lb"; fresh.id = "board";
   fresh.innerHTML = list.length ? list.map((r,i) => `
-    <li style="--i:${i}" class="${isDnf(r) && m.type==='fortime' ? 'dnf' : ''} ${myPid && r.pid===myPid ? 'me' : ''}">
-      <span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span>
+    <li style="--i:${i}" class="${isDnf(r) && m.type==='fortime' ? 'dnf' : ''} ${isMe(r) ? 'me' : ''}">
+      <span class="rank ${rn[i]<=3?'r'+rn[i]:''}">${rn[i]}</span>
       <span class="who">
         <span class="name${r.coach ? ' coach' : ''}">${esc(r.name)}${
           (m.hasScaled || m.hasCoach)
@@ -786,6 +830,7 @@ function drawSubmit(){
   sum.textContent = "交成績";
   // 上個月選了教練組或降階，這個月可能沒開那一層，先拉回 Rx 免得送出的是不存在的強度
   if((formDiv === "co" && !m.hasCoach) || (formDiv === "sc" && !m.hasScaled)) formDiv = "rx";
+  if(formFails.length !== m.stations.length) formFails = m.stations.map(() => 0);
   const stOpts = m.stations.map((s,i) => `<option value="${i}">${i+1}. ${esc(s.name)}</option>`).join("");
   const progressFields = `
     <div class="field"><label for="f-rounds">完成輪數</label>
@@ -799,6 +844,18 @@ function drawSubmit(){
       <input id="f-min" type="number" min="0" placeholder="16" inputmode="numeric"></div>
     <div class="field"><label for="f-sec">秒</label>
       <input id="f-sec" type="number" min="0" max="59" placeholder="07" inputmode="numeric"></div>`;
+  // 計分制：每站 0～3 次失敗，滿 3 次那站就 0 分
+  const pointFields = `<div class="field full"><label>各站結果</label>
+    <div class="ptlist">${m.stations.map((st,i) => `
+      <div class="ptrow">
+        <span class="pt-no">${i+1}</span>
+        <span class="pt-name">${esc(st.name)}${st.std ? `<em>${esc(st.std)}</em>` : ""}</span>
+        <span class="seg pt-seg" data-i="${i}">
+          ${[0,1,2,3].map(f => `<button type="button" data-f="${f}" aria-pressed="${(formFails[i]||0)===f}">${
+              f === 3 ? "失敗" : f + " 失誤"}</button>`).join("")}
+        </span>
+      </div>`).join("")}</div></div>`;
+
   const resultToggle = m.type!=="fortime" ? "" : `
     <div class="field full"><label>結果</label>
       <div class="seg" id="f-done">
@@ -806,15 +863,16 @@ function drawSubmit(){
         <button type="button" data-done="0" aria-pressed="${!formDone}">未完賽 (CAP)</button>
       </div>
     </div>`;
-  const scoreFields = m.type!=="fortime" ? progressFields : (formDone ? timeFields : progressFields);
+  const scoreFields = m.type==="points" ? "" :
+                      m.type!=="fortime" ? progressFields : (formDone ? timeFields : progressFields);
 
   $("submit-slot").innerHTML = `
     <form class="form" id="form" novalidate>
       <div class="row">
         <div class="field"><label for="f-name">姓名</label>
           <input id="f-name" placeholder="王小明" autocomplete="name" required></div>
-        <div class="field sm"><label for="f-age">年齡</label>
-          <input id="f-age" type="number" min="8" max="99" placeholder="34" inputmode="numeric" required></div>
+        <div class="field sm"><label for="f-birth">出生西元年</label>
+          <input id="f-birth" type="number" min="1900" max="2099" placeholder="1990" inputmode="numeric" required></div>
       </div>
       <div class="field full"><label>組別</label>
         <div class="seg" id="f-sex">
@@ -829,8 +887,9 @@ function drawSubmit(){
           ${m.hasScaled ? `<button type="button" data-div="sc" aria-pressed="${formDiv==='sc'}">Scaled 降階</button>` : ""}
         </div>
       </div>` : ""}
+      ${m.type === "points" ? pointFields : ""}
       ${resultToggle}
-      <div class="row">${scoreFields}</div>
+      ${scoreFields ? `<div class="row">${scoreFields}</div>` : ""}
       <div class="preview"><span class="lbl">你的成績</span><span class="val" id="f-preview">—</span></div>
       <div class="field full"><label for="f-note">完賽心得（選填，會顯示在排行榜）</label>
         <textarea id="f-note" maxlength="40" placeholder="例：前兩輪衝太快，後面付出代價"></textarea></div>
@@ -841,8 +900,17 @@ function drawSubmit(){
   // 記住上次填的姓名與年齡，省得每個月重打
   try{
     $("f-name").value = localStorage.getItem("peri.name") || "";
-    $("f-age").value  = localStorage.getItem("peri.age")  || "";
+    $("f-birth").value = localStorage.getItem("peri.birth") || "";
   }catch(e){}
+
+  document.querySelectorAll(".pt-seg").forEach(seg => {
+    seg.addEventListener("click", e => {
+      const b = e.target.closest("button[data-f]"); if(!b) return;
+      formFails[+seg.dataset.i] = +b.dataset.f;
+      [...seg.children].forEach(c => c.setAttribute("aria-pressed", +c.dataset.f === +b.dataset.f));
+      updatePreview();
+    });
+  });
 
   $("f-sex").addEventListener("click", e => {
     const b = e.target.closest("button[data-sex]"); if(!b) return;
@@ -858,10 +926,10 @@ function drawSubmit(){
   });
   if($("f-done")) $("f-done").addEventListener("click", e => {
     const b = e.target.closest("button[data-done]"); if(!b) return;
-    const keep = {n:$("f-name").value, a:$("f-age").value, t:$("f-note").value};
+    const keep = {n:$("f-name").value, a:$("f-birth").value, t:$("f-note").value};
     formDone = b.dataset.done === "1";
     drawSubmit();
-    $("f-name").value = keep.n; $("f-age").value = keep.a; $("f-note").value = keep.t;
+    $("f-name").value = keep.n; $("f-birth").value = keep.a; $("f-note").value = keep.t;
     updatePreview();
   });
   $("form").addEventListener("input", updatePreview);
@@ -874,12 +942,14 @@ function readForm(){
   const m = cur();
   const r = {
     name:($("f-name").value||"").trim(),
-    age:+$("f-age").value||0,
+    birth:+$("f-birth").value||0,
     sex:formSex,
     div:formDiv,
     note:($("f-note").value||"").trim()
   };
-  if(m.type==="fortime" && formDone){
+  if(m.type==="points"){
+    r.fails = formFails.join(",");
+  }else if(m.type==="fortime" && formDone){
     r.sec = (+$("f-min").value||0)*60 + (+$("f-sec").value||0);
   }else{
     r.rounds = +$("f-rounds").value||0;
@@ -891,6 +961,12 @@ function readForm(){
 
 function updatePreview(){
   const m = cur(), r = readForm();
+  if(m.type === "points"){
+    const per = m.stations.length ? Math.round(100 / m.stations.length) : 0;
+    const passed = formFails.filter(f => f < 3).length;
+    $("f-preview").textContent = (passed * per) + " 分　(" + passed + "/" + m.stations.length + " 站)";
+    return;
+  }
   if($("f-part-label")){
     const st = m.stations[r.st] || {unit:"下", qty:999};
     $("f-part-label").textContent = "該站已完成（" + (st.unit==="下" ? "下" : st.unit) + "）";
@@ -906,14 +982,17 @@ async function onSubmit(e){
   if(busy) return;
   const m = cur(), r = readForm();
   if(!r.name)                      return alert("請填寫姓名。");
-  if(!(r.age >= 8 && r.age <= 99)) return alert("請填寫年齡（8 到 99）。");
-  if(!isDnf(r) && r.sec <= 0)        return alert("請填寫完成時間。");
-  if(!isDnf(r) && r.sec > m.cap)     return alert(`超過時間上限 ${mmss(m.cap)}，請改選「未完賽 (CAP)」並填寫做到哪裡。`);
-  if(isDnf(r) && !r.rounds && !r.part) return alert("請填寫做到第幾輪。");
+  const yr = new Date().getFullYear();
+  if(!(r.birth >= yr-99 && r.birth <= yr-8)) return alert("請填寫出生西元年，例如 1990。");
+  if(m.type !== "points"){
+    if(!isDnf(r) && r.sec <= 0)          return alert("請填寫完成時間。");
+    if(!isDnf(r) && r.sec > m.cap)       return alert(`超過時間上限 ${mmss(m.cap)}，請改選「未完賽 (CAP)」並填寫做到哪裡。`);
+    if(isDnf(r) && !r.rounds && !r.part) return alert("請填寫做到第幾輪。");
+  }
 
   try{
     localStorage.setItem("peri.name", r.name);
-    localStorage.setItem("peri.age", String(r.age));
+    localStorage.setItem("peri.birth", String(r.birth));
   }catch(err){}
 
   const btn = $("f-submit");
@@ -924,14 +1003,14 @@ async function onSubmit(e){
     if(LIVE){
       const res = await api("submit", Object.assign({monthId:m.id, done:!isDnf(r)}, r));
       if(!res.ok) throw new Error(res.error || "送出失敗");
-      setPid(res.pid);
+      setPids([res.pid]);
       await reload();
     }else{
       // 示範模式：只改本機資料，不會真的存起來
       r.pid = demoPid(r.name);
       const i = m.results.findIndex(x => x.pid === r.pid);
       if(i >= 0) m.results[i] = r; else m.results.push(r);
-      setPid(r.pid);
+      setPids([r.pid]);
       redraw();
     }
     sex = r.sex;
@@ -956,26 +1035,26 @@ async function onSubmit(e){
   }
 }
 
-function setPid(p){
-  myPid = p;
-  try{ localStorage.setItem("peri.pid", p); }catch(e){}
+function setPids(list){
+  myPids = (list || []).filter(Boolean);
+  try{ localStorage.setItem("peri.pids", JSON.stringify(myPids)); }catch(e){}
 }
 
 function drawHistory(){
-  if(!myPid){
-    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名，就能看到自己每個月的成績與名次。</li>`;
+  if(!myPids.length){
+    $("hist").innerHTML = `<li style="display:block;color:var(--muted-2);font-size:14px;">輸入交成績時填的姓名就能查。11 月之後交的成績，要連出生西元年一起填才找得到。</li>`;
     return;
   }
   const rows = [];
   MONTHS.slice().reverse().forEach(m => {
-    const mine = m.results.find(r => r.pid === myPid);
+    const mine = m.results.find(isMe);
     if(!mine) return;
     const list = ranked(m, mine.sex);
     rows.push({m, mine, rank:list.indexOf(mine)+1, of:list.length});
   });
   if(!rows.length){
     $("hist").innerHTML =
-      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名是否與交成績時填的一致。</li>`;
+      `<li style="display:block;color:var(--muted-2);font-size:14px;">查無紀錄。確認姓名是否與交成績時填的一致；11 月之後的成績還要填出生西元年。</li>`;
     return;
   }
   const most = Math.max(...rows.map(r => r.of));
@@ -991,15 +1070,16 @@ function drawHistory(){
 }
 
 async function lookup(){
-  const name = $("h-name").value.trim();
+  const name = $("h-name").value.trim(), birth = +$("h-birth").value || 0;
   if(!name) return alert("請填寫姓名。");
   try{
     if(LIVE){
-      const res = await api("identify", {name});
+      // 後端會回一組 pid：沒有出生年的舊紀錄，加上填了出生年的新紀錄
+      const res = await api("identify", {name, birth});
       if(!res.ok) throw new Error(res.error || "查詢失敗");
-      setPid(res.pid);
+      setPids(res.pids || []);
     }else{
-      setPid(demoPid(name));
+      setPids([demoPid(name)]);
     }
     drawHistory(); drawLeaderboard();
   }catch(err){

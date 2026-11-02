@@ -277,6 +277,7 @@ Burpee to plank 12"></textarea>
                 <select id="p-type">
                   <option value="fortime">For Time · 完成計時，比誰快</option>
                   <option value="amrap">AMRAP · 限時計量，比誰多</option>
+                  <option value="points">計分 · 每站做滿就得分，比總分</option>
                 </select></div>
               <div class="field sm"><label for="p-rounds">輪數</label><input id="p-rounds" type="number" min="1" value="4"></div>
             </div>
@@ -465,8 +466,8 @@ function parseWorkout(text){
     });
     body = body.trim();
     let name = body, qty = 0, unit = "下";
-    const suffix = body.match(/^(.*?)[\s×x*]+([\d.]+)\s*(m|公尺|cal|kcal|下|次|reps?)?\.?$/i);
-    const prefix = body.match(/^([\d.]+)\s*(m|公尺|cal|kcal|下|次|reps?)?[\s×x*]+(.*)$/i);
+    const suffix = body.match(/^(.*?)[\s×x*]+([\d.]+)\s*(m|公尺|cal|kcal|下|次|reps?|s|sec|秒)?\.?$/i);
+    const prefix = body.match(/^([\d.]+)\s*(m|公尺|cal|kcal|下|次|reps?|s|sec|秒)?[\s×x*]+(.*)$/i);
     if(suffix && suffix[1].trim()){ name = suffix[1].trim(); qty = +suffix[2]; unit = toUnit(suffix[3]); }
     else if(prefix && prefix[3].trim()){ qty = +prefix[1]; unit = toUnit(prefix[2]); name = prefix[3].trim(); }
     else { out.unknown.push(line); }
@@ -476,11 +477,17 @@ function parseWorkout(text){
   });
   return out;
 }
+function typeLabel(p){
+  return p.type === "points" ? (p.stations ? p.stations.length : 0) + " 站計分"
+       : p.type === "amrap"  ? "AMRAP 限時計量"
+       : (p.rounds || 1) + " 輪 For Time";
+}
 function toUnit(u){
   if(!u) return "下";
   u = u.toLowerCase();
   if(u === "m" || u === "公尺") return "m";
   if(u === "cal" || u === "kcal") return "cal";
+  if(u === "s" || u === "sec" || u === "秒") return "秒";
   return "下";
 }
 
@@ -501,7 +508,7 @@ function doParse(){
   }
   $("parse-msg").innerHTML = p.unknown.length
     ? `<div class="parsed warn">解析出 <b>${p.stations.length}</b> 站，但這幾行看不出數量，請手動補：<b>${esc(p.unknown.join("、"))}</b></div>`
-    : `<div class="parsed">解析完成：<b>${p.type==="amrap" ? "AMRAP 限時計量" : p.rounds + " 輪 For Time"}</b>，共 <b>${p.stations.length}</b> 站。對照下面確認一下。</div>`;
+    : `<div class="parsed">解析完成：<b>${typeLabel(p)}</b>，共 <b>${p.stations.length}</b> 站。對照下面確認一下。</div>`;
   render();
 }
 
@@ -526,7 +533,7 @@ function drawStations(){
       <td class="act" data-label="動作"><input data-i="${i}" data-k="name" value="${esc(s.name)}" placeholder="DB Snatch"></td>
       <td data-label="數量"><input data-i="${i}" data-k="qty" type="number" min="0" class="num" value="${s.qty}"></td>
       <td data-label="單位"><select data-i="${i}" data-k="unit">
-        ${["下","m","cal"].map(u => `<option value="${u}" ${s.unit===u?"selected":""}>${u==="m"?"公尺":u}</option>`).join("")}
+        ${["下","m","cal","秒"].map(u => `<option value="${u}" ${s.unit===u?"selected":""}>${u==="m"?"公尺":u}</option>`).join("")}
       </select></td>
       <td data-label="Rx 男"><input${li} data-i="${i}" data-k="rxM" value="${esc(s.rxM)}" placeholder="15kg"></td>
       <td data-label="Rx 女"><input${li} data-i="${i}" data-k="rxF" value="${esc(s.rxF)}" placeholder="10kg"></td>
@@ -542,11 +549,16 @@ function drawStations(){
 function drawPreview(){
   if(!plan) return;
   const cap = (+$("p-cap-m").value||0)*60 + (+$("p-cap-s").value||0);
+  if(plan.type === "points"){
+    const per = plan.stations.length ? Math.round(100 / plan.stations.length) : 0;
+    $("pv-kind").textContent = plan.stations.length + " 站計分 · 滿分 100";
+    $("pv-cap").textContent = "每站 " + per + " 分";
+  }else
   $("pv-kind").textContent = plan.type === "amrap"
     ? "AMRAP · " + Math.round(cap/60) + " 分鐘"
     : plan.rounds + " ROUND FOR TIME";
   $("pv-title").textContent = $("p-title").value || "（未命名）";
-  $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
+  if(plan.type !== "points") $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
   $("pv-st").innerHTML = plan.stations.map((s,i) => {
     const prow = (cls, lab, mv, fv) => `<div class="pv-load">
       ${lab ? `<span class="lv ${cls}">${lab}</span>` : ""}
@@ -767,7 +779,7 @@ async function doPublish(payload){
   if(!LIVE){
     alert("示範模式：正式版這裡會寫進試算表的「課表」分頁。\n\n這個月會存成：\n\n"
       + payload.id + "  " + payload.title + "\n"
-      + (payload.type === "amrap" ? "AMRAP" : payload.rounds + " 輪 For Time")
+      + typeLabel(payload)
       + "  CAP " + mmss(payload.cap) + "\n"
       + payload.stations.map(s => `${s.name}｜${s.qty}${s.unit}｜M${s.M||"-"}｜F${s.F||"-"}`).join("\n"));
     return;
@@ -798,7 +810,7 @@ $("btn-publish").addEventListener("click", () => {
     const n = (exist.results || []).length;
     $("pub-warn").innerHTML =
       `<b>${esc(exist.id)}　${esc(exist.title)}</b> 已經存在了` +
-      `（${exist.type === "amrap" ? "AMRAP" : exist.rounds + " 輪 For Time"}、` +
+      `（${typeLabel(exist)}、` +
       `CAP ${mmss(exist.cap)}、${exist.stations.length} 站` + (n ? `、${n} 筆成績` : "") + `）。<br>` +
       `你這次沒有先把它載入，現在發布會用<b>畫面上的內容整列覆蓋</b>它。`;
     $("btn-publish").hidden = true;
@@ -866,6 +878,32 @@ function rcard(r){
     `</select>`;
 
   const stOpts = (plan ? plan.stations : []).map((x,k) => [String(k), `${k+1}. ${x.name}`]);
+
+  // 計分制：每站填教練喊失敗的次數（0～3），滿 3 次那站 0 分，分數後端重算
+  if(plan && plan.type === "points"){
+    const fl = String(r.fails || "").split(",").filter(x => x !== "");
+    const pts = `<div class="rc-f"><label>總分</label><b style="font-family:var(--display);font-size:18px">${r.score || 0}</b></div>` +
+      plan.stations.map((st,k) => `<div class="rc-f"><label>${k+1}. ${esc(st.name)}</label>
+        <select data-row="${r.row}" data-f="fail${k}">${[0,1,2,3].map(f =>
+          `<option value="${f}" ${String(f) === String(fl[k] === undefined ? 0 : +fl[k]) ? "selected" : ""}>${
+            f === 3 ? "失敗" : f + " 失誤"}</option>`).join("")}</select></div>`).join("");
+    return `<div class="rcard ${cls}">
+      <div class="rc-top">
+        <span class="rc-name">${esc(r.name)}</span>
+        <span class="rc-phone">${esc(r.phone)}</span>
+        <span class="rc-when">${esc((r.time||"").slice(5,16))}</span>
+      </div>
+      <div class="rc-fields">
+        <div class="rc-f"><label>組別</label>${sel("sex", [["M","男子組"],["F","女子組"]], r.sex)}</div>
+        <div class="rc-f"><label>出生年</label>
+          <input class="t" data-row="${r.row}" data-f="birth" value="${r.birth || ""}" placeholder="—" inputmode="numeric"></div>
+        ${pts}
+      </div>
+      ${r.note ? `<p class="rc-note">心得：${esc(r.note)}</p>` : ""}
+      <div class="rc-actions">${acts}</div>
+    </div>`;
+  }
+
   const score = r.done
     ? `<div class="rc-f"><label>完成時間</label>
          <input class="t" data-row="${r.row}" data-f="min" value="${Math.floor(r.sec/60)}" inputmode="numeric">
@@ -893,12 +931,13 @@ function rcard(r){
     </div>
     <div class="rc-fields">
       <div class="rc-f"><label>組別</label>${sel("sex", [["M","男子組"],["F","女子組"]], r.sex)}</div>
-      <div class="rc-f"><label>年齡</label>
-        <input class="t" data-row="${r.row}" data-f="age" value="${r.age || ""}" placeholder="—" inputmode="numeric"></div>
+      <div class="rc-f"><label>出生年</label>
+        <input class="t" data-row="${r.row}" data-f="birth" value="${r.birth || ""}" placeholder="—" inputmode="numeric"></div>
       ${plan && (plan.hasScaled || plan.hasCoach) ? `<div class="rc-f"><label>強度</label>${
           sel("div", [].concat(plan.hasCoach ? [["co","教練組"]] : [], [["rx","Rx 標準"]],
                                plan.hasScaled ? [["sc","Scaled 降階"]] : []), r.div)}</div>` : ""}
-      <div class="rc-f"><label>結果</label>${sel("done", [["1","時間內完賽"],["0","未完賽 (CAP)"]], r.done ? "1" : "0")}</div>
+      ${plan && plan.type === "points" ? "" :
+        `<div class="rc-f"><label>結果</label>${sel("done", [["1","時間內完賽"],["0","未完賽 (CAP)"]], r.done ? "1" : "0")}</div>`}
       ${score}
     </div>
     ${r.note ? `<p class="rc-note">心得：${esc(r.note)}</p>` : ""}
@@ -957,7 +996,16 @@ $("r-list").addEventListener("change", e => {
   const row = +el.dataset.row, f = el.dataset.f;
   if(f === "sex")      return pushUpdate(row, {sex: el.value});
   if(f === "div")      return pushUpdate(row, {div: el.value});
-  if(f === "age")      return pushUpdate(row, {age: +el.value || 0});
+  if(f === "birth")    return pushUpdate(row, {birth: +el.value || 0});
+  if(/^fail\d+$/.test(f)){                       // 計分制：收齊整列再送，後端會重算分數
+    const plan = curPlan(), n = plan ? plan.stations.length : 0;
+    const list = [];
+    for(let k = 0; k < n; k++){
+      const sel = $("r-list").querySelector(`[data-row="${row}"][data-f="fail${k}"]`);
+      list.push(sel ? +sel.value : 0);
+    }
+    return pushUpdate(row, {fails: list.join(",")});
+  }
   if(f === "done"){                                   // 切換形狀，先重畫欄位再送
     const r = RESULTS.find(x => x.row === row);
     if(r){ r.done = el.value === "1"; drawResults(); }
@@ -977,11 +1025,11 @@ $("r-month").addEventListener("change", loadResults);
 $("r-reload").addEventListener("click", loadResults);
 
 $("r-export").addEventListener("click", () => {
-  const head = ["姓名","手機","年齡","組別","強度","完賽","成績","輪數","站別","該站數量","心得","狀態"];
+  const head = ["姓名","手機","出生年","組別","強度","完賽","成績","分數","失敗次數","輪數","站別","該站數量","心得","狀態"];
   const lines = [head.join(",")].concat(RESULTS.map(r => [
-    r.name, r.phone, r.age || "", r.sex === "M" ? "男" : "女",
+    r.name, r.phone, r.birth || "", r.sex === "M" ? "男" : "女",
     r.div === "co" ? "教練" : r.div === "sc" ? "Scaled" : "Rx",
-    r.done ? "是" : "否", r.done ? mmss(r.sec) : "",
+    r.done ? "是" : "否", r.done ? mmss(r.sec) : "", r.score || "", '"' + String(r.fails || "") + '"',
     r.done ? "" : r.rounds, r.done ? "" : (r.st + 1), r.done ? "" : r.part,
     '"' + String(r.note).replace(/"/g,'""') + '"', r.status
   ].join(",")));
