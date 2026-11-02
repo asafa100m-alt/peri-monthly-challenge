@@ -879,6 +879,25 @@ function rcard(r){
 
   const stOpts = (plan ? plan.stations : []).map((x,k) => [String(k), `${k+1}. ${x.name}`]);
 
+  const score = r.done
+    ? `<div class="rc-f"><label>完成時間</label>
+         <input class="t" data-row="${r.row}" data-f="min" value="${Math.floor(r.sec/60)}" inputmode="numeric">
+         <span style="color:var(--muted-2)">:</span>
+         <input class="t" data-row="${r.row}" data-f="sec" value="${String(r.sec%60).padStart(2,"0")}" inputmode="numeric"></div>`
+    : `<div class="rc-f"><label>輪數</label>
+         <input class="t" data-row="${r.row}" data-f="rounds" value="${r.rounds}" inputmode="numeric"></div>
+       <div class="rc-f"><label>停在哪一站</label>${stOpts.length ? sel("st", stOpts, String(r.st)) : "—"}</div>
+       <div class="rc-f"><label>該站數量</label>
+         <input class="t" data-row="${r.row}" data-f="part" value="${r.part}" inputmode="numeric"></div>`;
+
+  const acts = sts === "有效"
+    ? `<button class="tinybtn" data-act="待審" data-row="${r.row}">退回待審</button>
+       <button class="tinybtn" data-act="作廢" data-row="${r.row}">作廢</button>`
+    : sts === "作廢"
+    ? `<button class="tinybtn" data-act="待審" data-row="${r.row}">復原成待審</button>`
+    : `<button class="tinybtn go" data-act="有效" data-row="${r.row}">確認上榜</button>
+       <button class="tinybtn" data-act="作廢" data-row="${r.row}">作廢</button>`;
+
   // 計分制：每站填教練喊失敗的次數（0～3），滿 3 次那站 0 分，分數後端重算
   if(plan && plan.type === "points"){
     const fl = String(r.fails || "").split(",").filter(x => x !== "");
@@ -903,25 +922,6 @@ function rcard(r){
       <div class="rc-actions">${acts}</div>
     </div>`;
   }
-
-  const score = r.done
-    ? `<div class="rc-f"><label>完成時間</label>
-         <input class="t" data-row="${r.row}" data-f="min" value="${Math.floor(r.sec/60)}" inputmode="numeric">
-         <span style="color:var(--muted-2)">:</span>
-         <input class="t" data-row="${r.row}" data-f="sec" value="${String(r.sec%60).padStart(2,"0")}" inputmode="numeric"></div>`
-    : `<div class="rc-f"><label>輪數</label>
-         <input class="t" data-row="${r.row}" data-f="rounds" value="${r.rounds}" inputmode="numeric"></div>
-       <div class="rc-f"><label>停在哪一站</label>${stOpts.length ? sel("st", stOpts, String(r.st)) : "—"}</div>
-       <div class="rc-f"><label>該站數量</label>
-         <input class="t" data-row="${r.row}" data-f="part" value="${r.part}" inputmode="numeric"></div>`;
-
-  const acts = sts === "有效"
-    ? `<button class="tinybtn" data-act="待審" data-row="${r.row}">退回待審</button>
-       <button class="tinybtn" data-act="作廢" data-row="${r.row}">作廢</button>`
-    : sts === "作廢"
-    ? `<button class="tinybtn" data-act="待審" data-row="${r.row}">復原成待審</button>`
-    : `<button class="tinybtn go" data-act="有效" data-row="${r.row}">確認上榜</button>
-       <button class="tinybtn" data-act="作廢" data-row="${r.row}">作廢</button>`;
 
   return `<div class="rcard ${cls}">
     <div class="rc-top">
