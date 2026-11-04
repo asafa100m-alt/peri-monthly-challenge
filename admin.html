@@ -343,7 +343,7 @@ Burpee to plank 12"></textarea>
     <div id="view-results" hidden>
       <section class="card" style="margin-top:22px">
         <h2 id="r-title">成績管理</h2>
-        <p class="hint">學員送出的成績會先進「待審」，按<b>確認上榜</b>才會出現在排行榜。
+        <p class="hint">學員送出的成績<b>直接上榜</b>，不用審。要讓某一筆下榜就按<b>作廢</b>或<b>退回待審</b>。
           組別、強度、成績都可以在這裡改，改完自動存回試算表。</p>
         <div class="toolbar">
           <select id="r-month" style="max-width:190px"></select>
@@ -949,7 +949,7 @@ function drawResults(){
   const q = $("r-search").value.trim();
   const rows = RESULTS.filter(r => !q || r.name.includes(q) || r.phone.includes(q));
   const groups = [
-    ["待審", "待審", "學員剛送出，還沒上榜"],
+    ["待審", "待審", "被你退回的，目前不在榜上"],
     ["有效", "已上榜", "出現在排行榜上"],
     ["作廢", "已作廢", "不上榜，但紀錄保留"]
   ];
@@ -958,7 +958,7 @@ function drawResults(){
     if(!list.length && key !== "待審") return "";
     return `<div class="r-group">
       <h3>${title}${list.length ? ` (${list.length})` : ""}<span>${hint}</span></h3>
-      ${list.length ? list.map(rcard).join("") : `<div class="r-empty">目前沒有待審的成績。</div>`}
+      ${list.length ? list.map(rcard).join("") : `<div class="r-empty">沒有待審的成績。</div>`}
     </div>`;
   }).join("");
 }

@@ -495,7 +495,7 @@
     </div>
   </section>
 
-  <p class="demo">成績由學員自行填寫，經教練確認後才會上榜。把這頁加到手機主畫面，用起來就像一個 App。</p>
+  <p class="demo">成績由學員自行填寫，送出就直接上榜。把這頁加到手機主畫面，用起來就像一個 App。</p>
 
 </div>
 
@@ -894,7 +894,7 @@ function drawSubmit(){
       <div class="field full"><label for="f-note">完賽心得（選填，會顯示在排行榜）</label>
         <textarea id="f-note" maxlength="40" placeholder="例：前兩輪衝太快，後面付出代價"></textarea></div>
       <button class="submit" type="submit" id="f-submit">送出成績</button>
-      <p class="hint">送出後要等教練確認才會上榜。榜上只顯示姓名，同一個月重複交以最新一次為準。</p>
+      <p class="hint">送出後立刻上榜。榜上只顯示姓名，同一個月重複交以最新一次為準。</p>
     </form>`;
 
   // 記住上次填的姓名與年齡，省得每個月重打
@@ -1017,10 +1017,16 @@ async function onSubmit(e){
     document.querySelector(".tabs").dataset.sex = sex;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
     drawTabs(); drawLeaderboard(); drawHistory();
+    // 已經直接上榜了，就把名次講出來，再把畫面捲到他自己那一列
+    const list = ranked(cur(), sex), rn = rankNumbers(cur(), list);
+    const i = list.findIndex(isMe);
     banner('<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.8 L9.6 18.4 L20 7"/></svg>' +
-           "<b>成績已送出</b> —— 教練確認之後才會出現在排行榜，通常不會太久。" +
+           "<b>成績已上榜</b>" +
+           (i >= 0 ? " —— 目前" + (sex === "F" ? "女子組" : "男子組") + "第 <b>" + rn[i] + "</b> 名。" : " ——") +
            "發現填錯了就再交一次，會蓋掉上一次的。");
-    window.scrollTo({top:0, behavior:"smooth"});
+    const me = document.querySelector("#board li.me");
+    if(me) me.scrollIntoView({block:"center", behavior:"smooth"});
+    else window.scrollTo({top:0, behavior:"smooth"});
   }catch(err){
     alert("送出失敗：" + err.message + "\n\n網路狀況不好時再試一次即可，不會重複記錄。");
   }finally{
