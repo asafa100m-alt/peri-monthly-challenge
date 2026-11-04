@@ -1,6 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>沛力挑戰後台</title>
+<meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
@@ -114,6 +115,13 @@
   .sttable .no{font-family:var(--display);font-weight:700;color:var(--muted-2);text-align:center;width:26px;font-variant-numeric:tabular-nums;}
   .del{background:none;border:1px solid var(--line);color:var(--muted-2);width:30px;height:32px;cursor:pointer;line-height:1;font-size:16px;}
   .del:hover{border-color:var(--accent-hot);color:var(--accent-hot);}
+  .gate{max-width:380px;margin:14vh auto 0;text-align:center;padding:0 20px;}
+  .gate .mark{display:inline-block;} .gate .mark-rule{margin:5px auto 0;}
+  .gate h1{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.05em;margin:18px 0 10px;}
+  .gate p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 0 14px;}
+  .gate .gate-how{color:var(--muted-2);font-size:12.5px;}
+  .gate code{background:var(--panel-2);padding:1px 5px;border-radius:3px;}
+
   .scrollx{overflow-x:auto;}
 
   .parsed{border-left:2px solid var(--ok);background:rgba(30,122,69,.07);padding:9px 12px;font-size:12.5px;color:var(--muted);margin-bottom:14px;}
@@ -218,9 +226,17 @@
   }
 </style>
 
+<!-- ============ 這台裝置還沒授權 ============ -->
+<div id="gate" class="gate" hidden>
+  <div class="mark"><b>PERI</b><span>TRAINING</span><div class="mark-rule"></div></div>
+  <h1>教練後台</h1>
+  <p id="gate-msg">這台裝置還沒授權。<br>請用教練專用的網址開啟一次，之後這台就記住了。</p>
+  <p class="gate-how">忘記網址的話：打開試算表 → 擴充功能 → Apps Script，
+    左邊選 <code>newAdminKey</code> 按「執行」，再到「執行紀錄」把印出來的網址複製走。</p>
+</div>
+
 <!-- ============ 後台 ============ -->
-<!-- 這一頁沒有登入關卡，是刻意的（林先生 2026-10-12 指定）。 -->
-<div id="app">
+<div id="app" hidden>
   <header class="topbar">
     <div class="topbar-in">
       <div><div class="mark"><b>PERI</b><span>TRAINING</span></div><div class="mark-rule"></div></div>
@@ -367,6 +383,22 @@ Burpee to plank 12"></textarea>
 const API_URL = "https://script.google.com/macros/s/AKfycbwzomM0U0En-LccK3eJXH0gHZFVN36_IvjRFMUi4NE3_C9hm_1Zfns1WfoLwJD82Di2/exec";
 
 const LIVE = /^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL);
+
+/* 裝置金鑰。教練用帶 #k=... 的網址開一次，之後這台就記住了。
+   抹掉網址上的金鑰，免得留在網址列或被截圖拍到。 */
+let KEY = "";
+try { KEY = localStorage.getItem("peri.key") || ""; } catch(e){}
+(function(){
+  const m = location.hash.match(/[#&]k=([A-Za-z0-9]+)/);
+  if(!m) return;
+  KEY = m[1];
+  try{ localStorage.setItem("peri.key", KEY); }catch(e){}
+  history.replaceState(null, "", location.pathname + location.search);
+})();
+function forgetKey(){
+  KEY = "";
+  try{ localStorage.removeItem("peri.key"); }catch(e){}
+}
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s)
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -400,7 +432,7 @@ async function api(action, payload){
   if(!LIVE) throw new Error("示範模式：還沒填入後台網址");
   return fetchJSON(API_URL, {
     method:"POST",
-    body: JSON.stringify(Object.assign({action}, payload || {}))
+    body: JSON.stringify(Object.assign({action, key:KEY}, payload || {}))
   });
 }
 function banner(html, bad){
@@ -413,7 +445,29 @@ function banner(html, bad){
    進入後台（沒有登入關卡，開頁就直接載入）
    ========================================================================== */
 
+function showGate(msg){
+  if(msg) $("gate-msg").innerHTML = msg;
+  $("gate").hidden = false;
+  $("app").hidden = true;
+}
+
 async function enter(demo){
+  if(!demo){
+    if(!KEY) return showGate();
+    // 先用一次輕量呼叫確認金鑰有效，不然等一下每個動作都會各自噴錯
+    let ok = false;
+    try{ ok = (await api("adminLogin", {})).ok === true; }
+    catch(err){
+      return showGate("連不上後台 —— " + esc(err.message) +
+        "<br>請確認 Apps Script 已部署、存取權限是「任何人」。");
+    }
+    if(!ok){
+      forgetKey();
+      return showGate("這條網址的金鑰不對，或是已經被換掉了。<br>請用最新的教練專用網址重開一次。");
+    }
+  }
+  $("gate").hidden = true;
+  $("app").hidden = false;
   if(!$("p-month").value){ $("p-month").value = thisMonth(); syncDates(); }
   if(demo){
     PLANS = DEMO_PLANS;
@@ -1077,7 +1131,7 @@ if(!LIVE) RESULTS = DEMO_RESULTS;
 
 // 沒有登入關卡，載入完就直接把資料拉進來
 enter(!LIVE).catch(err => {
-  banner("<b>連不上後台</b> —— " + esc(err.message) +
-         "。請確認 Apps Script 已部署為網頁應用程式、存取權限是「任何人」。", true);
+  showGate("連不上後台 —— " + esc(err.message) +
+           "<br>請確認 Apps Script 已部署為網頁應用程式、存取權限是「任何人」。");
 });
 </script>

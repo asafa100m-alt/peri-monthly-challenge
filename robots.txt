@@ -1,0 +1,3 @@
+# 學生端歡迎收錄，教練後台不要
+User-agent: *
+Disallow: /admin.html
