@@ -177,6 +177,18 @@
   .tab[aria-selected="true"]{background:var(--accent-dim);color:var(--accent-hot);}
 
   /* ---------- leaderboard ---------- */
+  .ages{display:flex;gap:6px;overflow-x:auto;padding:10px 0;scrollbar-width:none;}
+  .ages::-webkit-scrollbar{display:none;}
+  .age{
+    flex:0 0 auto;padding:5px 11px;border-radius:999px;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    font-family:var(--display);font-size:14px;font-weight:600;letter-spacing:.03em;white-space:nowrap;
+  }
+  .age em{font-style:normal;margin-left:5px;font-size:12px;color:var(--muted-2);font-variant-numeric:tabular-nums;}
+  .age[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .age[aria-pressed="true"] em{color:rgba(255,255,255,.75);}
+  .ages:empty{display:none;}
+
   .lb{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-top:0;}
   .empty{border-top:0;}
   .lb li{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel);}
@@ -480,6 +492,7 @@
       <button class="tab" role="tab" aria-selected="true" data-sex="M">男子組</button>
       <button class="tab" role="tab" aria-selected="false" data-sex="F">女子組</button>
     </div>
+    <div class="ages" id="ages"></div>
     <ol class="lb" id="board"></ol>
   </section>
 
@@ -514,6 +527,7 @@ const $ = id => document.getElementById(id);
 let MONTHS = [];
 let monthId = null;
 let sex = "M";
+let ageSel = 0;                  // 0 = 全部；30 代表 30–39 這一段
 let formSex = "M";
 let formDiv = "rx";              // rx 標準 / sc 降階 / co 教練組
 let formDone = true;
@@ -602,6 +616,10 @@ function banner(html, bad){
 // 未完賽的三層比較：輪數 → 停在第幾站 → 該站完成量。
 // 各站單位不同（下 / 公尺 / cal），但只有同站才互比，所以不需要換算。
 // Rx 一律排在 Scaled 之前，這是 CrossFit 的慣例
+// 年齡層的顯示名稱。後端只給級距，這裡轉成人看得懂的字。
+const bandLabel = b => b === 10 ? "19 以下" : b === 60 ? "60 以上" : b + "–" + (b + 9);
+const inBand = r => !ageSel || r.ag === ageSel;
+
 const divTier = r => (r.div === "co" ? 0 : r.div === "sc" ? 2 : 1);   // 重的排前面：教練 → Rx → 降階
 
 function cmpProgress(a,b){
@@ -622,7 +640,7 @@ function cmpPoints(a,b){
 }
 function ranked(m,sx){
   const inner = m.type === "points" ? cmpPoints : m.type === "fortime" ? cmpFortime : cmpProgress;
-  return m.results.filter(r => r.sex===sx)
+  return m.results.filter(r => r.sex===sx && inBand(r))
     .sort((a,b) => (divTier(a) - divTier(b)) || inner(a,b));
 }
 // 計分制會有一堆同分，名次要併排（1,1,1,4）而不是硬編 1,2,3,4
@@ -782,9 +800,22 @@ function drawTabs(){
   const m = cur();
   document.querySelector(".tabs").dataset.sex = sex;      // 指示線滑到對的那一邊
   document.querySelectorAll(".tab").forEach(t => {
-    const n = m.results.filter(r => r.sex === t.dataset.sex).length;
+    const n = m.results.filter(r => r.sex === t.dataset.sex && inBand(r)).length;
     t.innerHTML = (t.dataset.sex === "M" ? "男子組" : "女子組") + `<em>${n}</em>`;
   });
+}
+
+// 只列出這一組裡真的有人的年齡層；人數不到兩段就整排不顯示（分齡沒有意義）
+function drawAges(){
+  const m = cur();
+  const mine = m.results.filter(r => r.sex === sex);
+  const bands = [...new Set(mine.map(r => r.ag).filter(Boolean))].sort((a,b) => a-b);
+  if(ageSel && bands.indexOf(ageSel) < 0) ageSel = 0;   // 換月或換組之後那一段可能沒人了
+  if(bands.length < 2){ ageSel = 0; $("ages").innerHTML = ""; return; }
+  $("ages").innerHTML =
+    `<button class="age" data-ag="0" aria-pressed="${!ageSel}">全部<em>${mine.length}</em></button>` +
+    bands.map(b => `<button class="age" data-ag="${b}" aria-pressed="${ageSel===b}">${
+      bandLabel(b)}<em>${mine.filter(r => r.ag === b).length}</em></button>`).join("");
 }
 
 function drawLeaderboard(){
@@ -1016,7 +1047,7 @@ async function onSubmit(e){
     sex = r.sex;
     document.querySelector(".tabs").dataset.sex = sex;
     document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.sex===sex));
-    drawTabs(); drawLeaderboard(); drawHistory();
+    drawAges(); drawTabs(); drawLeaderboard(); drawHistory();
     // 已經直接上榜了，就把名次講出來，再把畫面捲到他自己那一列
     const list = ranked(cur(), sex), rn = rankNumbers(cur(), list);
     const i = list.findIndex(isMe);
@@ -1100,7 +1131,7 @@ const demoPid = n => "demo-" + n.replace(/\s+/g,"").toLowerCase();
 
 function redraw(){
   document.querySelector(".wrap").classList.remove("is-loading");
-  drawMonths(); drawBoard(); drawStats(); drawTabs(); drawLeaderboard(); drawSubmit(); drawHistory();
+  drawMonths(); drawBoard(); drawStats(); drawAges(); drawTabs(); drawLeaderboard(); drawSubmit(); drawHistory();
 
   // 只有第一次把內容攤開時讓各區塊依序浮上來，之後重畫不再跑
   if(changed("page", "1")){
@@ -1168,7 +1199,14 @@ document.querySelector(".tabs").addEventListener("click", e => {
   sex = t.dataset.sex;
   document.querySelector(".tabs").dataset.sex = sex;
   document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x===t));
-  drawLeaderboard();
+  drawAges(); drawTabs(); drawLeaderboard();
+});
+
+$("ages").addEventListener("click", e => {
+  const b = e.target.closest(".age"); if(!b) return;
+  ageSel = +b.dataset.ag || 0;
+  [...$("ages").children].forEach(c => c.setAttribute("aria-pressed", +c.dataset.ag === ageSel));
+  drawTabs(); drawLeaderboard();
 });
 
 $("h-go").addEventListener("click", lookup);
