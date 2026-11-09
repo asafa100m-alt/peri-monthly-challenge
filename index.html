@@ -151,6 +151,11 @@
   .divtag.co{color:#FFFFFF;background:#12518C;}   /* 教練組：深藍 */
 
   .board-note{margin:14px 0 0;font-size:13px;color:var(--muted);line-height:1.6;}
+  .board-coach{display:inline-flex;align-items:center;gap:7px;margin:10px 0 0;
+    font-size:12px;letter-spacing:.04em;color:var(--muted);}
+  .board-coach::before{content:"";width:14px;height:1px;background:var(--accent-hot);}
+  .board-coach b{font-family:var(--display);font-size:13px;font-weight:700;
+    letter-spacing:.02em;color:var(--ink);}
 
   /* ---------- 本月概況：一行就夠 ---------- */
   .stats{
@@ -476,6 +481,7 @@
     <h2 class="board-title" id="board-title"></h2>
     <div class="timecap" id="board-cap"></div>
     <p class="window" id="board-window"></p>
+    <p class="board-coach" id="board-coach" hidden></p>
     <ol class="stations" id="stations"></ol>
     <p class="board-note" id="board-note"></p>
     <p class="stats" id="stats"></p>
@@ -745,6 +751,10 @@ function drawBoard(){
     [m.window + " 開放提交", m.isOpen ? "" : "已截止"].filter(Boolean).join("　·　");
   $("board-note").textContent = m.note;
   $("board-note").hidden = !m.note;          // 沒寫說明就不要留空段落
+
+  const coach = String(m.coach || "").trim();   // 這份課表是哪位教練出的
+  $("board-coach").hidden = !coach;
+  if(coach) $("board-coach").innerHTML = "課表設計　<b>" + esc(coach) + "</b>";
 
   $("stations").innerHTML = m.stations.map((s,i) => {
     const row = (cls, label, mv, fv, on) => `<div class="st-load ${on ? "" : "dim"}">

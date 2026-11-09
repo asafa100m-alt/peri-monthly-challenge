@@ -134,6 +134,8 @@
   .pv-kind{font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--accent-hot);text-transform:uppercase;}
   .pv-title{font-family:var(--display);font-size:25px;font-weight:700;line-height:1.1;margin:3px 0 0;}
   .pv-cap{display:inline-block;margin-top:8px;font-family:var(--display);font-size:11.5px;font-weight:600;letter-spacing:.1em;color:var(--muted);border:1px solid var(--line-strong);padding:2px 7px;}
+  .pv-coach{margin:8px 0 0;font-size:12.5px;color:var(--muted);}
+  .pv-coach b{color:var(--ink);font-weight:600;}
   .pv-st{list-style:none;margin:14px 0 0;padding:0;border-top:1px dashed var(--line-strong);}
   .pv-st li{display:flex;align-items:baseline;gap:11px;padding:9px 0;border-bottom:1px dashed var(--line);}
   .pv-no{font-family:var(--display);font-size:12px;font-weight:600;color:var(--muted-2);width:15px;flex:0 0 15px;}
@@ -267,6 +269,10 @@
               <div class="field"><label for="p-title">標題</label><input id="p-title" placeholder="例：十月挑戰"></div>
             </div>
             <div class="row">
+              <div class="field"><label for="p-coach">出題教練</label>
+                <input id="p-coach" maxlength="20" placeholder="例：阿丞教練（留空就不顯示）"></div>
+            </div>
+            <div class="row">
               <div class="field"><label for="p-open">開放日</label><input id="p-open" type="date"></div>
               <div class="field"><label for="p-close">截止日</label><input id="p-close" type="date"></div>
             </div>
@@ -347,6 +353,7 @@ Burpee to plank 12"></textarea>
             <span class="pv-kind" id="pv-kind"></span>
             <h3 class="pv-title" id="pv-title"></h3>
             <span class="pv-cap" id="pv-cap"></span>
+            <p class="pv-coach" id="pv-coach" hidden></p>
             <ol class="pv-st" id="pv-st"></ol>
             <p class="pv-note" id="pv-note" hidden></p>
             <p class="pv-window" id="pv-window"></p>
@@ -363,7 +370,7 @@ Burpee to plank 12"></textarea>
           組別、強度、成績都可以在這裡改，改完自動存回試算表。</p>
         <div class="toolbar">
           <select id="r-month" style="max-width:190px"></select>
-          <input id="r-search" placeholder="搜尋姓名或手機">
+          <input id="r-search" placeholder="搜尋姓名">
           <button class="tinybtn" id="r-reload">重新整理</button>
           <button class="tinybtn" id="r-export">匯出這個月 CSV</button>
         </div>
@@ -608,6 +615,9 @@ function drawPreview(){
     ? "AMRAP · " + Math.round(cap/60) + " 分鐘"
     : plan.rounds + " ROUND FOR TIME";
   $("pv-title").textContent = $("p-title").value || "（未命名）";
+  const coachName = $("p-coach").value.trim();
+  $("pv-coach").hidden = !coachName;
+  if(coachName) $("pv-coach").innerHTML = "課表設計：<b>" + esc(coachName) + "</b>";
   if(plan.type !== "points") $("pv-cap").textContent = (plan.type === "amrap" ? "限時 " : "時間上限 ") + mmss(cap);
   $("pv-st").innerHTML = plan.stations.map((s,i) => {
     const prow = (cls, lab, mv, fv) => `<div class="pv-load">
@@ -696,6 +706,7 @@ function loadPlanInto(id){
   $("p-type").value  = p.type;
   $("p-rounds").value = p.rounds;
   $("p-note").value  = p.note || "";
+  $("p-coach").value = p.coach || "";
   $("p-raw").value = (p.type === "amrap" ? "AMRAP " + Math.round(p.cap/60) + " min" : p.rounds + " Round For Time")
     + "\n" + p.stations.map(s => {
         const load = (s.M || s.F) ? ` (M${s.M||"-"}/F${s.F||"-"})` : "";
@@ -791,7 +802,7 @@ $("st-body").addEventListener("click", e => {
   const b = e.target.closest("[data-del]"); if(!b) return;
   plan.stations.splice(+b.dataset.del, 1); render();
 });
-["p-title","p-open","p-close","p-cap-m","p-cap-s","p-rounds","p-type","p-note"].forEach(id => {
+["p-title","p-open","p-close","p-cap-m","p-cap-s","p-rounds","p-type","p-note","p-coach"].forEach(id => {
   $(id).addEventListener("input", () => {
     if(plan){ plan.rounds = +$("p-rounds").value||1; plan.type = $("p-type").value; }
     drawPreview();
@@ -821,6 +832,7 @@ function buildPayload(){
     open: $("p-open").value,
     close: $("p-close").value,
     note: $("p-note").value.trim(),
+    coach: $("p-coach").value.trim(),
     stations: plan.stations
   };
 }
